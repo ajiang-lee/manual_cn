@@ -1,0 +1,13 @@
+doctype html
+html(lang='zh-cn')
+  head
+    title 中文手册
+    //- 引入CSS样式文件和JS脚本文件
+    link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    script(type='text/javascript' src='/javascripts/jquery-2.1.0.min.js')
+    script(type='text/javascript' src='/javascripts/bootstrap.min.js')
+    script(type='text/javascript' src='/javascripts/location-anchor.js')
+  body
+    include ./nav
+    block content

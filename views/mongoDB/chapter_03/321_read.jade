@@ -1,0 +1,285 @@
+extends ../../layout
+
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/crud') CRUD
+            li
+                a(href='/mongoDB/crud') 相关概念
+            li.active 读操作
+        h3#section32 3.2 相关概念
+        p 读操作、写操作详细介绍了MongoDB读写相关的行为和动作。
+        h4#section321 3.2.1 读操作
+        p 本页内容详细描述了MongoDB数据库的读操作，主要包含以下内容：
+        ul
+            li
+                a(href='#section3211') 3.2.1.1&emsp;概述
+            li
+                a(href='#section3212') 3.2.1.2&emsp;指针
+            li
+                a(href='#section3213') 3.2.1.3&emsp;查询优化
+            li
+                a(href='#section3214') 3.2.1.4&emsp;查询计划
+            li
+                a(href='#section3215') 3.2.1.5&emsp;分布式查询
+        h4#section3211 3.2.1.1 概述
+        p 读操作（即查询）是指获取存储在数据库中的数据。在MongoDB中，查询语句只能从单一集合中获取若干文档。
+        p 查询语句可以指定查询条件用于指定MongoDB应该返回哪些文档给客户端。一个查询语句也可以包含一个投影用于指定匹配文档的哪些字段需要返回给客户端。
+          | 投影操作降低了MongoDB通过网络返回给客户端的数据量。
+        strong 查询接口
+        p 对于查询操作，MongoDB提供了<code>db.collection.find()</code>方法，该方法可以指定查询条件和投影，并且放回一个指向匹配文档结果集的指针。
+          | 也可以可选的指定查询语句返回的文档数（limit）、忽略哪些文档（skip），以及对结果集排序（order）。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.5.png')
+        p.text-center
+            small 图3.5 MongoDB数据库查询操作的构成
+        p 上述MongoDB查询语句对应关系数据库的SQL为：
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.6.png')
+        p.text-center
+            small 图3.6 SQL SELECT语句的构成
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.users.find({age: {$gt: 18}}, {name: 1, address: 1}).limit(5)
+                p
+                p 该查询语句获取<code>users</code>集合中满足<code>age</code>大于<code>18</code>过滤条件的文档记录。
+                  | 为了指定大于过滤条件，查询语句使用了大于（即：<code>$gt</code>）<em>查询选择符</em>。
+                  | 该查询语句最多返回<code>5</code>个匹配的文档记录（实际上是一个指向结果集的指针）。
+                  | 结果集中的每个文档只返回<code>_id</code>、<code>name</code>、<code>address</code>三个字段的值。
+        strong 查询语句的行为
+        p MongoDB的查询语句具有以下行为：
+        ul
+            li MongDB数据库中的所有查询语句只能查询单个集合。
+            li 可以通过使用<code>limits</code>、<code>skips</code>、<code>sort orders</code>子句改变查询结果集。
+            li 一个查询语句返回的结果集是无序的，除非指定了<code>sort()</code>子句。
+            li MongoDB的更新、删除语句使用和查询语句相同的查询语法来指定需要更新、删除的文档。
+            li 在聚合管道操作中，<code>$match</code>阶段可以使用MongoDB的查询语句。
+        p 对于只需要返回一个文档的<code>find()</code>情况，MongoDB提供了<code>db.collection.findOne()</code>方法。
+        strong 查询声明
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.7.png')
+        p.text-center
+            small 图3.7 包含一个查询条件和一个排序标识的MongoDB查询语句的执行过程
+        p 考虑图3.7中的查询语句，该查询语句指定了一个查询过滤条件和一个排序标识。
+        p 图3.7中，查询语句从<code>users</code>集合中获取文档结果集，使用一个<code>查询选择符</code>来指定匹配规则，
+          | 查询语句获取<code>age</code>大于（即：<code>$gt</code>）<code>18</code>的文档记录，之后<code>sort()</code>
+          | 标识表明查询结果集应按照<code>age</code>字段正序返回。
+        strong 投影
+        p MongoDB的查询语句默认返回匹配文档的所有字段。为了降低MongoDB返回给客户端的数据量，应该在查询语句中使用投影操作。
+          | 通过投影操作，MongoDB只返回匹配文档的指定字段，这样应用程序可以降低自身的网络流量负担，以及降低了解析成本。
+        .alert.alert-danger 除了可以在包含投影中排除<code>_id</code>字段，其他字段不能在包含和排除投影中混用。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.8.png')
+        p.text-center
+            small 图3.8 MongoDB查询语句的过滤和投影过程，只返回投影字段给客户端
+        p 图3.8中的查询语句包含一个过滤条件和一个投影。
+        p 图3.8中的查询语句从<code>users</code>集合中获取文档，过滤条件匹配<code>age</code>等于<code>18</code>的文档记录，
+          | 之后，投影指定该查询语句只返回匹配文档的<code>name</code>字段。
+        .panel.panel-default
+            .panel-heading 投影示例：排除一个字段
+            .panel-body
+                code db.records.find({user_id: {$lt: 42}}, {history: 0})
+                p
+                p 查询语句从<code>records</code>集合中获取满足过滤条件<code>{user_id: {$lt: 42}}</code>的文档记录，
+                  | 并使用投影<code>{history: 0}</code>指定文档结果集中不需要返回<code>history</code>字段，其他字段均返回。
+        .panel.panel-default
+            .panel-heading 投影示例：返回两个字段和<code>_id</code>字段
+            .panel-body
+                code db.records.find({user_id: {$lt: 42}}, {name: 1, email: 1})
+                p
+                p 查询语句从<code>records</code>集合中获取满足过滤条件<code>{user_id: {$lt: 42}}</code>的文档记录，
+                  | 并使用投影<code>{name: 1, email: 1}</code>指定文档结果集中只返回<code>_id</code>（隐式指定）、
+                  | <code>name</code>、<code>email</code>字段，其他字段均不返回。
+        .panel.panel-default
+            .panel-heading 投影示例：返回两个字段，排除<code>_id</code>字段
+            .panel-body
+                code db.records.find({user_id: {$lt: 42}}, {_id: 0, name: 1, email: 1})
+                p
+                p 查询语句从<code>records</code>集合中获取满足过滤条件<code>{user_id: {$lt: 42}}</code>的文档记录，
+                  | 并使用投影<code>{_id: 0, name: 1, email: 1}</code>指定文档结果集中只返回<code>name</code>、
+                  | <code>email</code>字段，其他字段均不返回。
+        p MongoDB的投影具有以下特性：
+        ul
+            li 默认情况下，<code>_id</code>字段包含在结果集中，如果需要将<code>_id</code>字段从结果集中排除，需要显示使用投影<code>_id: 0</code>。
+            li 对于包含数组的字段，MongoDB提供了投影操作符：<code>$elemMatch</code>、<code>$slice</code>、<code>$</code>。
+            li 对于聚合操作结果集的投影，使用<code>$project</code>处理。
+        h4#section3212 3.2.1.2 指针
+        p 在MongoDB shell中，读操作主要通过方法<code>db.collection.find()</code>完成。该方法查询单一集合，返回一个指向匹配文档结果集的<em>指针</em>。
+        p 为了获取指针中的文档记录，需要遍历该指针。但是，在<code>mongo</code>shell中，如果指针没有被赋值给一个使用<code>var</code>关键字声明的变量，
+          | 指针会自动遍历前20条文档记录，并将结果打印到控制台中。
+        p 例如，在<code>mongo</code>shell中，查询语句<code>db.inventory.find({type: 'food'})</code>将会查询<code>type</code>字段值等于<code>'food'</code>的文档，
+          | 并自动将前20条文档记录打印到控制台中。
+        strong 指针行为
+        ul
+            li <strong>不活动指针的关闭</strong>&emsp;默认情况下，当一个指针不活动时间达到10分钟或者已被客户端消耗完，MongoDB会自动关闭该指针。
+              | 为了覆盖MongoDB的上述默认行为，可以在你的查询语句中添加<code>noTimeout</code> <a href='http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/'>wire protocol flag（驱动协议参数）</a>；
+              | 但是，正常情况下，都应该主动的关闭指针或者消耗完指针，以避免内存泄露。在<code>mongo</code> shell中，可以通过如下方式指定<code>noTimeout</code>：
+            p
+                code var myCursor = db.inventory.find().addOption(DBQuery.Option.noTimeout);
+            p 如果希望在应用程序中指定<code>noTimeout</code>参数，需要查看对应的驱动文档。
+            li <strong>指针隔离</strong>&emsp;由于在指针的生命周期中是非隔离的，所以如果一个发生在文档上的中间写操作（针对一个文档同时发生读操作和写操作）使该文档发生改变，则该指针可能多次返回该文档。
+              | 为了解决上述问题，可以参考<a href=''>快照模式（snapshot mode）</a>。
+            li <strong>指针的批量返回</strong>&emsp;MongoDB实例会以批量返回的方式返回查询结果。批次容量不会超过<em>maximum BSON document size（最大BSON文档大小，即16M）</em>。
+              | 对于大部分查询，第一批次返回101个文档或者文档数据量超过1M，后续批次的数据量为4M。可以通过使用<code>batchSize()</code>、
+              | <code>limit()</code>方法改变批次的默认数据量大小。
+            p 如果一个查询包含排序子句，但是没有使用任何索引，MongoDB必须一次性将所有匹配文档加载到内存中进行排序操作，然后在第一批次中返回所有文档。
+            p 当遍历指针到达本批次返回结果集末尾时，如果还有更多结果文档，<code>cursor.next()</code>将会执行<code>getmore operation</code>以获取下一批次的结果集。
+            p 当遍历指针时需要查看本批次中还有多少文档，可以使用<code>objsLeftInBatch()</code>方法，如下所示：
+            p
+                code var myCursor = db.inventory.find();
+            p
+                code var myFirstDocument = myCursor.hasNext() ? myCursor.next() : null;
+            p
+                code myCursor.objsLeftInBatch();
+        strong 指针相关信息
+        p 方法<code>db.serverStatus()</code>返回一个包含<code>metrics</code>字段的文档结构。<code>metrics</code>字段包含<code>cursor</code>字段，该字段包含以下信息：
+        ul
+            li 自从MongoDB最后一次启动以来超时指针的总数
+            li 通过使用参数<code>DBQuery.Option.noTimeout</code>打开的指针总数
+            li 打开的'pinned'指针总数
+            li 打开指针总数
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.serverStatus().metrics.cursor<br/>
+                code {<br/>
+                code &emsp;&emsp;"timedOut" : 0,<br/>
+                code &emsp;&emsp;"open" : {<br/>
+                code &emsp;&emsp;&emsp;&emsp;"noTimeout" : 0,<br/>
+                code &emsp;&emsp;&emsp;&emsp;"pinned" : 0,<br/>
+                code &emsp;&emsp;&emsp;&emsp;"total" : 0<br/>
+                code &emsp;&emsp;}<br/>
+                code }
+        h4#section3213 3.2.1.3 查询优化
+        p 索引通过降低查询操作处理的数据量来提高读取操作的性能，简化了MongoDB为了满足查询需要执行的工作。
+        strong 创建一个索引以支持读操作
+        p 如果应用程序需要以文档的某一个字段或某些字段的值过滤一个集合，则在该查询字段上的索引可以避免遍历整个集合以获取查询结果。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设应用程序需要查询集合<code>inventory</code>，并指定<code>type</code>字段，如下：
+                p
+                    code db.inventory.find({type: 'food'});
+                p 为了提高上述查询语句的性能，可以在集合<code>inventory</code>文档的<code>type</code>字段上添加一个升序或降序索引。
+                p 在<code>mongo</code> shell中，可以通过<code>db.collection.ensureIndex()</code>方法添加索引，如下：
+                p
+                    code db.inventory.ensureIndex({type: 1});
+                p 上述语句在集合<code>inventory</code>集合的<code>type</code>字段上创建了一个降序索引，
+                  | 该索引可以避免上述查询语句遍历整个<code>inventory</code>集合获取结果集。
+        p 除了可以提高查询语句的性能，索引同样支持结果集的排序，以及为索引数据提供更高效的存储机制。
+        strong 查询语句的选择性
+        p 一些查询语句不具有选择性，导致这些查询语句不能有效的使用索引，更甚者根本不能使用索引。
+        p 不等于选择符<code>$nin</code>和<code>$ne</code>不具有选择性，因为包含这些选择符的查询语句往往可以匹配索引的大部分数据，
+          | 导致的结果就是，在大部分情况下，包含选择符<code>$nin</code>和<code>$ne</code>的查询语句的性能使用索引并没有扫描整个集合的效率高。
+        p 使用正则表达式的查询语句（使用内链JavaScript正则表达式或者使用<code>$regexp</code>表达式），不能使用索引。
+          | 唯一可以使用索引的例外情况是，查询语句在字符串开始处指定带有<em>anchors</em>的正则表达式。
+        strong 索引数据涵盖整个查询语句
+        p 当满足以下所有情况时，一个索引可以涵盖整个查询语句：
+        ul
+            li 过滤条件中的所有字段均包含在索引中
+            li 结果集需要返回的所有文档字段均包含在同一个索引中
+        d 如果一个查询语句满足上述两点，则该查询语句根本不需要检查该集合数据，只需要通过索引即可获取查询结果。因为索引的数据结构更高效，
+          | 并且，相对于集合数据，索引往往较小，所以只查询索引的效率更高。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合<code>inventory</code>具有以下索引：
+                p
+                    code db.inventory.ensureIndex({type: 1, item: 1});
+                p 则上述索引可以涵盖如下的查询语句：
+                p
+                    code db.inventory.find({type: 'food', item: /^c/}, {_id: 0, item: 1});
+                p 但是不能涵盖如下的查询语句，因为该查询语句返回<code>_id</code>字段，<code>_id</code>并不在上述索引中：
+                p
+                    code db.inventory.find({type: 'food', item: /^c/}, {item: 1});
+        h4#section3214 3.2.1.4 查询计划
+        p MongoDB的查询优化器解析查询语句，并且选择最高效的查询计划，之后查询系统会在每次执行该查询语句时使用选择的查询计划。
+        p 查询优化器只会缓存拥有多个可用查询计划的查询语句的查询计划。
+        p 随着集合内容的改变，查询优化会不时的重新计算查询计划，以保证当前的查询计划是最优的。可以通过使用索引过滤（Index Filters）来指定优化器使用哪些索引。
+        p 可以使用<code>explain()</code>方法查看给定查询语句的查询计划的统计信息，可以依据这些统计信息来制定具体的索引策略。
+        strong 查询优化
+        p 为了创建一个新的查询计划，查询优化器会进行如下操作：
+        ol
+            li 使用不同的备选索引并行执行查询语句
+            li 在公共结果缓冲区（可能有多个）中记录匹配结果
+                ul
+                    li 如果备选查询计划只包含<em>ordered query plans</em>，则只有一个公共结果缓冲区
+                    li 如果备选查询计划只包含<em>unordered query plans</em>，则只有一个公共结果缓冲区
+                    li 如果备选查询计划包含<em>ordered query plans</em>和<em>unordered query plans</em>，则有两个结果缓冲区，
+                      | 一个用于保存<em>ordered query plans</em>，一个用于保存<em>unordered query plans</em>
+                p 如果一个索引的返回结果已被其他索引返回，则优化器会跳过该重复匹配结果。在上述两种公共结果缓冲区，都是结果去重的。
+            li 当以下事件之一发生时，优化器会停止备选查询计划的测试匹配，并且选择一个索引供查询计划使用。
+                ul
+                    li 一个<em>unordered query plans</em>已返回所有查询结果
+                    li 一个<em>ordered query plans</em>已返回所有查询结果
+                    li 一个<em>ordered query plans</em>已经达到查询结果的阈值：
+                        ul
+                            li Version 2.0: 阈值和指针的批次容量相等。默认值为101个文档
+                            li Version 2.2: 阈值是101个文档
+        p 通过上述步骤后，被选中的索引将会被查询计划使用，在以后该查询语句或者拥有相同查询模式的查询语句均会使用该索引。查询模式指的是，
+          | 拥有相同的查询条件，只是查询条件的值不同，如下两个查询语句拥有相同的查询模式：
+        p
+            code db.inventory.find({type: 'food'});
+        p
+            code db.inventory.find({type: 'car'});
+        strong 查询计划的重新修订
+        p 随着集合内容的改变，如果下述事件之一发生，则优化器会删除原来的查询计划，并且重新生成查询计划：
+        ul
+            li 集合收到1000个写操作
+            li 使用<code>reIndex</code>重建索引
+            li 添加或者删除一个索引
+            li <code>mongod</code>进程重启
+        strong 查询计划的缓存接口
+        p 版本2.6的新特性。
+        p MongoDB-2.6版本中可以查看、修改已缓存的查询计划。
+        strong 索引过滤（Index Filters）
+        p 版本2.6的新特性。
+        p 索引过滤决定了优化器在计算查询直方图（query shape）时使用哪些索引。查询直方图由查询条件、排序规则、投影组成。如果针对一个查询直方图存在一个索引过滤，
+          | 则优化器只考虑索引过滤中指定的索引。
+        p 当一个查询直方图存在对应的索引过滤时，MongoDB会忽略<code>hint()</code>。如果需要查看MongoDB针对某个查询语句是否使用了索引过滤，
+          | 可以通过<code>explain()</code>的<code>explain.filterSet</code>字段查看。
+        p 索引过滤只会影响优化器生成查询直方图时使用的索引；对于一个查询直方图，优化器可能仍然会选择集合扫描作为最有的查询计划。
+        p 索引过滤只存在服务进程中，并不会持久化存储。MongoDB提供了相关命令用于手工删除索引过滤。
+        p 同<code>hint()</code>一样，索引过滤覆盖了优化器的默认行为（即人为干预了优化器的优化策略），请谨慎使用。
+        h4#section3215 3.2.1.5 分布式查询
+        strong 分片集群的读操作
+        p 分片集群允许你以一种几乎对应用透明的方式将一个数据集分散到一个<code>mongod</code>的实例集群中。
+        p 对于一个分片集群，应用程序将操作发送到关联到该集群中的多个<code>mongos</code>实例中的一个。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.9.png')
+        p.text-center
+            small 图3.9 MongoDB的分片集群构成
+        p 相对于单个分片的查询，在分片集群上的读操作更高效。针对分片集群的查询应该包含集合的<em>分片键（shard key）</em>。
+          | 当一个查询语句包含分片键时，<code>mongos</code>实例使用从<em>配置数据库（config database）</em>获取的集群元信息将查询分发到对应的分片执行。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.10.png')
+        p.text-center
+            small 图3.10 包含分片键的查询
+        p 如果查询语句不包含分片键，<code>mongos</code>实例必须将查询分发到集群中的所有分片中执行。这些<em>分散收集（scatter gather）</em>的查询语句不是高效的。
+          | 在一个非常大的分片集群中，这种分散收集的查询语句是不切实际的。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.11.png')
+        p.text-center
+            small 图3.10 不包含分片键的查询
+        strong 副本集的读操作
+        p 副本集使用<em>读取偏好（read preferences）</em>决定如何将查询操作发送到副本集中的哪一个成员中。
+          | 默认情况下，MongoDB总是从副本集的<em>primary</em>读取数据，可以通过更改<em>读取偏好（read preferences）</em>改变这一默认行为。
+        p 可以为单个连接、单个查询语句配置<em>读取偏好（read preferences）</em>，以允许应用程序从<em>secondaries</em>中读取数据，可以实现如下特性：
+        ul
+            li 在多数据中心部署情况下降低潜在风险
+            li 通过将读取操作分发到高吞吐量的磁盘以提高读取的吞吐量
+            li 用于备份
+            li 允许故障转移
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.12.png')
+        p.text-center
+            small 图3.10 副本集的读操作（左侧采用默认策略，右侧配置了读取偏好）
+        p 从副本集的secondary成员中读取数据不能保证读取的数据就是副本集的primary数据的当前状态，
+          | secondary成员中的数据相对于primary数据可能存在延迟。所以，在配置<em>读取偏好（read preferences）</em>时，
+          | 务必针对应用的实际情况考虑是否需要设置<em>读取偏好（read preferences）</em>。
+

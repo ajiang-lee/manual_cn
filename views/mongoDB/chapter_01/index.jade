@@ -1,0 +1,46 @@
+extends ../../layout
+
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li.active 简介
+        p 欢迎来到MongoDB的世界。本章简要介绍了MongoDB以及一些关键性的概念。查看
+          a(href='/mongoDB/install') 安装指南
+          | 详细了解如何下载、安装MongoDB。
+        h3#section11 1.1 MongoDB是什么
+        p MongoDB是一个开源文档型数据库，具有高性能、高可用性，以及自动扩展等特性。
+        h4#section111 1.1.1 文档型数据库
+        p= '在MongoDB中，一条记录就是一个文档（由键值对组成的数据结构）。MongoDB中的文档和JSON类似。'
+           | 文档中的值可以包含其他文档、数组、文档数组。
+        p.text-center
+            img(src='/images/mongoDB/chapter_01/1.1.png')
+        p.text-center
+            small 图1.1 MongoDB的文档结构
+        p 使用文档结构的优势：
+        ul
+            li 文档（即：对象）可以和许多编程语言中的数据类型相对应。
+            li 嵌套文档和数据可以减少耗时的链接操作。
+            li 动态模式可以更好的支持多态。
+        h4#section112 1.1.2 关键特性
+        strong 高性能
+        p MongoDB提供了高性能的数据持久化。特别是：
+        ul
+            li 支持嵌套数据模型，进而在数据库层面减少了I/O。
+            li 索引支持高效的查询，并且可以针对嵌套文档和数据建立索引。
+        strong 高可用性
+        p 为了提供高可用性，MongoDB的复制特性，即副本集，提供以下功能：
+        ul
+            li 自动故障转移
+            li 数据冗余
+        p 一个副本集由多个维护同样数据集的MongoDB服务组成，副本集提供了数据冗余，进而增加了数据可用性。
+        strong 自动扩展
+        p 除了副本集特性，MongoDB提供了另一个核心功能：水平扩展能力，即分片。
+        ul
+            li 自动分片将数据分散到一个服务集群中。
+            li 副本集可以实现低延迟高吞吐量的一致读服务部署。
+
+
+

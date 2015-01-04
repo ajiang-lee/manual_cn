@@ -1,0 +1,13 @@
+extends ../../layout
+
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/crud') CRUD
+            li
+                a(href='/mongoDB/crud') 相关概念
+            li.active 写操作

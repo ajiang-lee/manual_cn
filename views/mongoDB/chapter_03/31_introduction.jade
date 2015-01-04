@@ -1,0 +1,49 @@
+extends ../../layout
+
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/crud') CRUD
+            li.active 简介
+        h3#section31 3.1 简介
+        p MongoDB以文档形式存储数据，和JSON类似的键值对数据结构。文档和编程语言中的将值关联到键的数据结构类似（即：字典、哈希、Map、关联数组）。
+          | 其实，MongoDB的文档是BSON文档。BSON是附加了额外类型信息的JSON的二进制表示。在文档中，一个键的值可以是任意BSON数据类型，
+          | 可以包含其他文档、数组、文档数组等等数据类型。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.1.png')
+        p.text-center
+            small 图3.1 MongoDB的文档结构
+        p MongoDB将所有文档保存在集合中,一个集合包含若干共享索引的相关联文档。可以将MongoDB的集合想象成关系数据库中的表结构。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.2.png')
+        p.text-center
+            small 图3.2 MongoDB的集合结构
+        h4#section311 3.1.1 数据库操作
+        strong 查询
+        p 在MongoDB中，一个查询只能指定一个文档集合（即：MongoDB中不存在关系数据库中的关联查询）。
+          | 查询语句中可以指定查询条件，用于指定MongoDB数据库实例应该返回哪些文档，
+          | 同样可以指定投影字段，用于指定MongoDB数据库实例应该返回匹配文档的哪些字段，
+          | 最后，可以可选的限制查询语句返回的文档总数（limit）、忽略哪些文档记录（skip）、指定返回文档记录的顺序（order）。
+        p 图3.3中，查询语句指定了一个查询条件、一个排序标识。
+        strong 数据修改
+        p 数据修改操作包含创建（Create）、更新（Update）、删除（Delete）。在MongoDB中，这些修改操作只能修改单一集合的文档。
+          | 对于更新和删除操作，可以指定过滤条件用于指定哪些文档需要更新或删除。
+        h4#section312 3.1.2 相关特性
+        strong 索引
+        p 为了提高普通查询和更新的性能，MongoDB提供了完整的索引支持。索引以一种高效的数据结构保存了一个集合的部分数据。
+          | 大部分索引以有序的方式保存了一个集合中文档的一个或者多个字段的值。索引支持唯一性校验，支持对象的空间坐标表示，支持全文检索。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.3.png')
+        p.text-center
+            small 图3.3 包含一个查询条件和一个排序标识的MongoDB查询语句的执行步骤
+        strong 副本集的读取偏好（Read Preference）
+        p 对于副本集和使用副本集的分片群集，应用程序可以指定读取偏好。一个读取偏好可以决定应用程序将读取操作语句发送到副本集中的哪一个成员执行。
+        strong 写关注（Write Concern）
+        p 应用程序可以通过设置不同的写关注等级来控制写操作的行为。在副本集中特别有用，写关注允许客户端指定MongoDB在写操作执行到哪个步骤时返回客户端该写操作执行成功的回执消息。
+        strong 聚合
+        p 除了基础查询功能，MongoDB还提供了数据聚合功能。例如，MongoDB可以返回一个查询语句结果集的总记录数；
+          | 或者，返回某一个键不同值的总个数；或者，通过使用一个基于多阶段数据处理的管道操作或map-reduce操作完成批量文档的数据处理。
