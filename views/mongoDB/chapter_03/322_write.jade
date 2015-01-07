@@ -11,3 +11,181 @@ block content
             li
                 a(href='/mongoDB/crud') 相关概念
             li.active 写操作
+        h4#section322 3.2.2 读操作
+        p 本页内容详细描述了MongoDB数据库的写操作，主要包含以下内容：
+        ul
+            li
+                a(href='#section3221') 3.2.2.1 概述
+            li
+                a(href='#section3222') 3.2.2.2 写关注（Write Concern）
+            li
+                a(href='#section3223') 3.2.2.3 分布式写操作
+            li
+                a(href='#section3224') 3.2.2.4 写操作的性能
+            li
+                a(href='#section3225') 3.2.2.5 批量插入操作
+            li
+                a(href='#section3226') 3.2.2.6 底层数据存储
+        h4#section3221 3.2.2.1 概述
+        p 写操作指的是在MongoDB实例中进行添加、修改数据。在MongoDB中，写操作只能针对单一集合，MongoDB中的所有写操作在单一集合上具有原子性。
+        p 在MongoDB中有三种类型的写操作：<code>插入（insert）</code>、<code>更新（update）</code>、<code>删除（remove）</code>。
+            | 插入操作向某个集合添加新数据，更新操作更改某个集合已存在的数据，删除操作从某个集合删除数据。
+            | 所有上述三种写操作只在单一集合上具有原子性（即：写操作针对多个集合的操作不具有原子性）。
+        p 对于更新和删除操作，可以通过过滤条件来限制哪些文档需要更新或者删除。更新和删除语句中指定过滤条件的语法和读操作相同。
+        p MongoDB允许应用程序指定写关注的等级，详细介绍参考<a href='#section3222'>写关注（Write Concern）</a>
+        strong 插入（Insert）
+        p 在MongoDB中，<code>db.collection.insert()</code>方法执行向集合添加数据操作。
+        p 如下示例展示了MongoDB插入操作的组成部分：
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.13.png')
+        p.text-center
+            small 图3.13 MongoDB插入操作的组成部分
+        p 和上述MongoDB插入操作等价的关系数据库的Insert语句为：
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.14.png')
+        p.text-center
+            small 图3.14 关系数据库Insert SQL语句的组成部分
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.users.insert({name: "sue", age: 26, status: "A"});
+                p 上述插入操作向集合<code>users</code>插入一个新文档，该新文档包含4个字段：<code>name</code>、
+                    | <code>age</code>、<code>status</code>、<code>_id</code>。如果插入文档不包含<code>_id</code>字段，
+                    | 则MongoDB默认添加<code>_id</code>字段。
+        p <strong><small>插入操作的行为</small></strong>&emsp;如果插入的文档不包含<code>_id</code>字段，则客户端驱动或者<code>mongod</code>实例隐式为该文档添加一个<code>_id</code>字段，
+            | 并且该<code>_id</code>字段是一个唯一的<code>ObjectId</code>类型的值。
+        p 如果文档指定了<code>_id</code>字段，则确保该值在集合中的唯一性。对于指定了<em>写关注（Write Concern）</em>的插入操作，
+            | 如果插入文档的<code>_id</code>字段的值在该集合中已存在，则<code>mongod</code>实例返回一个重复主键异常。
+        p <strong><small>其他添加文档的方法</small></strong>&emsp;除了上述添加文档的方法，可以使用带有<em>upsert</em>选项的方法，
+            | 如果<em>upsert</em>选项的值为<code>true</code>，则这些方法将会更新匹配到的文档，或者如果没有匹配到任何文档，则执行一个添加文档操作。
+        strong 更新（Update）
+        p 在MongoDB中，方法<code>db.collection.update()</code>更新单个集合中的已存在文档。方法<code>db.collection.update()</code>可以指定过滤条件，
+            | 用于指定哪些文档需要更新，该方法也可以指定其他选项，用于影响更新操作的行为，例如选项<code>multi</code>用于指定更新多个文档。
+        p 如下示例展示了MongoDB更新操作的组成部分：
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.15.png')
+        p.text-center
+            small 图3.15 MongoDB更新操作的组成部分
+        p 和上述MongoDB更新操作等价的关系数据库的Update语句为：
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.16.png')
+        p.text-center
+            small 图3.16 关系数据库Update SQL语句的组成部分
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.users.update({age: {$gt: 18}}, {$set: {status: "A"}}, {multi: true});
+                p 上述更新语句将集合<code>users</code>中<code>age</code>大于<code>18</code>的所有文档的<code>status</code>字段值更改为<code>A</code>。
+        p <strong><small>更新操作的默认行为</small></strong>&emsp;默认情况下，<code>db.collection.update()</code>方法只更新集合中的<strong>单个</strong>文档。
+            | 但是，通过添加<code>multi</code>选项，<code>db.collection.update()</code>方法可以更新集合中的多个匹配文档。
+        p <code>db.collection.update()</code>方法可以更新已存在文档的指定字段，或者完全替换已存在的文档。
+        p 当更新操作导致更新后文档的数据大小超过已分配空间时，MongoDB实例会在磁盘上为该文档重新分配空间。
+        p MongoDB会保持写操作时文档字段的顺序，除了以下例外情况：
+        ul
+            li <code>_id</code>字段总是位于文档的第一个字段。
+            li 包含<code>renaming</code>选项的更新操作可能会导致文档字段的重新排序。
+        p 从版本2.6开始，MongoDB会积极的保持文档中字段的顺序；在版本2.6之前的版本中，MongoDB不会积极的保存文档中字段的顺序。
+        p <strong><small>带有<code>upsert</code>选项的更新操作</small></strong>&emsp;如果<code>db.collection.update()</code>方法带有<code>upsert: true</code>选项：
+            | 如果查询操作的过滤条件没有匹配到任何文档，则更新操作添加一个文档到集合中；如果查询操作的过滤条件匹配到文档，
+            | 则更新操作更新匹配文档的指定字段。
+        p 通过指定<code>upsert: true</code>选项，可以在一个操作实现两个操作：如果匹配到文档，则执行更新操作；如果没有匹配到文旦个，则执行插入操作。
+        p 在版本2.6中，通过添加<code>upsert: true</code>选项，新方法<code>Bulk()</code>和<code>update</code>命令可以执行多个操作。
+        strong 删除（Remove）
+        p 在MongoDB中，方法<code>db.collection.remove()</code>从一个集合中删除文档。<code>db.collection.remove()</code>方法可以通过添加过滤条件指定需要删除哪些文档。
+        p 如下示例展示了MongoDB删除操作的组成部分：
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.17.png')
+        p.text-center
+            small 图3.17 MongoDB删除操作的组成部分
+        p 和上述MongoDB删除操作等价的关系数据库的Delete语句为：
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.18.png')
+        p.text-center
+            small 图3.18 关系数据库Delete SQL语句的组成部分
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.users.remove({status: "D"});
+                p 上述删除操作将会从<code>users</code>集合中删除所有<code>status</code>字段值为<code>D</code>的文档。
+        p <strong><small>删除操作的行为</small></strong>&emsp;默认情况下，<code>db.collection.remove()</code>方法删除匹配的所有文档。
+            | 但是，可以通过添加标识来限制只删除一个文档。
+        strong 写操作的隔离级别
+        p 单个文档的更新操作总是原子性的，即便一个写操作更新了单个文档中的多个子文档。对于需要更新多个文档的写操作，该操作不是原子性的，
+            | 其他操作可能交替发生。
+        p 除了单个文档的更新操作是原子性的，其他任何写操作都不是原子性的。但是，可以通过使用<code>隔离操作符（isolation operator）</code>将一个影响多个文档的写操作进行隔离。
+        p 为了将一系列的写操作同其他读操作、写操作隔离，可以考虑使用<a href="">两阶段提交操作</a>。
+        strong 写操作的其他方法
+        p <code>db.collection.save()</code>方法可以更新一个已存在的文档，如果根据<code>_id</code>字段没有匹配到文档，则插入一个新文档。
+        p MongoDB同样提供了批量写操作的方法<code>Buld()</code>。
+        h4#section3222 3.2.2.2 写关注（Write Concern）
+        p 写关注指的是当MongoDB报告写操作成功时提供的保证度。写关注的强度决定了保证度的可靠性。当插入、更新、删除操作拥有一个较弱的写关注时，
+            | 写操作可以较快的返回。在一些失败情境中，如果写操作的写关注较弱，则可能导致数据并没有完成持久化（即：实例重启后，本来成功返回的写操作并没有真正完成数据的持久化）。
+            | 使用较强的写关注，客户端在发送一个写操作后，可能需要等待较长时间（相较于弱的写关注）以确保MongoDB实例成功完成了该操作。
+        p MongoDB提供了不同等级的写关注以适应不同应用程序的要求。客户端可以通过调整写关注的等级来确保重要操作针对整个MongoDB部署是成功的（主要指的是MongoDB的副本集）。
+            | 对于少数的情况，客户端可以通过调整写关注的等级来确保性能的最优化，而不是确保操作针对整个部署是成功的。
+        p 版本2.6新特性：MongoDB使用一种新的协议将写关注和写操作结合在一起。
+        strong 注意事项
+        p <strong><small>默认写关注等级</small></strong>&emsp;<code>mongo</code> shell和MongoDB的驱动使用<code>Acknowledged</code>作为写关注的默认等级。
+        p <strong><small>读操作的隔离</small></strong>&emsp;MongoDB允许客户端读取未提交文档，写关注等级和日志配置不会影响该行为。
+            | 结果就是，应用程序可能会表现出两种行为：
+        ul
+            li 如果存在多个并发的读写操作，MongoDB允许读操作读取写操作并未成功返回的写操作数据。
+            li 如果<code>mongod</code>在日志提交前异常终止，即便一个写操作成功返回，读操作可能读取到一些在<code>mongod</code>重启后就不存在的数据。
+        p 在其他关系数据库中，这种读操作的隔离被称为<em>读未提交（read uncommitted）</em>。对于所有的插入和更新操作，
+            | MongoDB确保针对单个文档的更改是彼此隔离的：客户端永远不可能看到单个文档的中间状态。对于多个文档的操作，
+            | MongoDB不提供对应的事务或隔离。
+        p 当<code>mongod</code>成功返回一个<em>journaled</em>等级的写关注，代表数据已完全成功写入磁盘，<code>mongod</code>重启后数据仍可用。
+        p 对于副本集，一个写操作只有在写入副本集成员并且已提交到副本集的大部分成员的日志后，该写操作才是持久化的。
+            | 不管写关注的等级如何，MongoDB都会定期将数据提交到日志中：使用<code>commitIntervalMs</code>参数控制<code>mongod</code>多久提交一次日志。
+        p <strong><small>超时</small></strong>&emsp;客户端可以针对<code>replica acknowledged</code>等级的写关注设置一个<code>wtimeout</code>参数。
+            | 如果在指定时间内，写关注没有被满足，则该操作返回一个异常，即便最终该写关注会成功返回。
+        p 当超时发生后，MongoDB不会回滚或者做取消修改操作。
+        strong 写关注等级
+        p 在概念上，MongoDB拥有以下等级的写关注，从弱到强依次列出：
+        p <strong><small>Unacknowledged</small></strong>&emsp;对于<em>unacknowledged</em>等级的写关注，MongoDB不需要确认写操作的回执。
+            | <em>Unacknowledged</em>类似于<em>忽略错误（errors ignored）</em>；但是，驱动程序可能会尝试接受并且处理网络异常，
+            | 驱动程序的这种探测网络异常的能力取决于操作系统本身的网络配置。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.19.png')
+            br
+            small 图3.19 写关注等级为<code>unacknowledged</code>时，针对<code>mongod</code>的写操作，
+                | 客户端不需要等待任何回执消息。
+        p <strong><small>Acknowledged</small></strong>&emsp;对于<em>acknowledged</em>等级的写关注，
+            | <code>mongod</code>实例需要确认写操作的回执消息。该等级的写关注允许客户端捕获网络异常、主键重复等其他异常。
+        p 版本2.6新特性：在<code>mongo</code> shell中，MongoDB默认使用<code>acknowledged</code>等级的写关注。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.20.png')
+            br
+            small 图3.20 写关注等级为<code>acknowledged</code>时，针对<code>mongod</code>的写操作，
+                | 客户端需要等待实例的失败或成功回执消息。
+        p <strong><small>Journaled</small></strong>&emsp;对于<em>journaled</em>等级的写关注，
+            | MongoDB只有在将数据提交到日志以后收到写操作的回执消息。该等级的写关注可以确保MongoDB在断电、异常宕机重启后可以恢复数据。
+        p 如果需要使用该等级的写关注，必须启用日志记录（journaling）。
+        p 对于<em>journaled</em>等级的写关注，写操作必须等待下一次的日志提交才能返回。为了提高日志提交的频率，可以通过参数<code>commitIntervalMs</code>进行修改。
+        .alert.alert-danger 在一个副本集中，如果配置了<code>journaled</code>等级的写关注，则只需要副本集中的主成员（primary）完成日志提交即可。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.21.png')
+            br
+            small 图3.21 写关注等级为<code>journaled</code>时，针对<code>mongod</code>的写操作，
+            | 在提交数据到日志后，<code>mongod</code>实例才返回回执消息。
+        p <strong><small>Replica Acknowledged</small></strong>&emsp;对于副本集的写关注需要额外的注意，默认情况下，
+            | 只需要确认副本集中主成员返回回执消息即可。
+        p 对于<em>replica acknowledged</em>等级的写关注，可以确保写操作已传播到副本集中的其他成员中。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.22.png')
+            br
+            small 图3.22 对副本集写时，写关注的等级为<code>w:2</code>，或者说，针对主成员并且至少一个二级成员。
+        h4#section3223 3.2.2.3 分布式写操作
+        strong 分片集群的写操作
+        p 对于一个分片集群中的分片集合，<code>mongos</code>将来自应用程序的写操作分发到集群中对应的分片。
+            | <code>mongos</code>使用来自<code>config database</code>中存储的集群元信息完成上述分发操作。
+        p.text-center
+            img(src='/images/mongoDB/chapter_03/3.23.png')
+            br
+            small 图3.23 MongoDB的分片集群
+        p MongoDB依据<em>分片键（shard key）</em>的值将一个分片集合的数据分割成不同的区间，之后，MongoDB将这些不同区间的数据分别分发到对应的分片中。
+            | 分片键决定了集合如何进行分片，分片键选取的好坏直接影响分片集群中集合的读写性能。
+        .alert.alert-danger 影响单个文档的更新操作必须包含<em>分片键</em>或者<em>_id</em>字段。
+            | 影响多个文档的更新操作如果包含<em>分片键</em>，在某些情境中可以提高性能，但是可能被传播到所有分片中。
+        p 如果随着插入操作的进行，分片键的值发生增加或者减少
+        strong 副本集的写操作
