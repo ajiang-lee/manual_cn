@@ -43,4 +43,11 @@ router.get('/crud/concept/write(/:section)?', function(req, res, next) {
     });
 });
 
+// 第三章：CRUD 》3.3：指导教程
+router.get('/crud/tutorial(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_03/33_tutorial', {
+        section : req.params[0]
+    });
+});
+
 module.exports = router;

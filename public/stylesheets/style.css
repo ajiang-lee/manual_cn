@@ -2,3 +2,15 @@ body {
     padding-top: 70px;
     background-image: url('../images/bg.png');
 }
+
+.two {
+    padding-left: 20px;
+}
+
+.third {
+    padding-left: 40px;
+}
+
+.fourth {
+    padding-left: 60px;
+}

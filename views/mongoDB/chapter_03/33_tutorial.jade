@@ -1,0 +1,390 @@
+extends ../../layout
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/crud') CRUD
+            li.active 指导教程
+        h3#section32 3.3 指导教程
+        p 本页教程为MongoDB数据库的查询、更新、删除操作提供了指导性参考。
+        ul
+            li
+                a(href='#section331') 3.3.1 插入文档
+            li
+                a(href='#section332') 3.3.2 查询文档
+            li
+                a(href='#section333') 3.3.3 指定查询语句返回的字段
+            li
+                a(href='#section334') 3.3.4 在mongo sheel中遍历指针
+            li
+                a(href='#section335') 3.3.5 分析查询语句的性能
+            li
+                a(href='#section336') 3.3.6 更新文档
+            li
+                a(href='#section337') 3.3.7 删除文档
+            li
+                a(href='#section338') 3.3.8 两阶段提交
+            li
+                a(href='#section339') 3.3.9 跟踪指针（Tailable Cursor）
+            li
+                a(href='#section3310') 3.3.10 操作的隔离
+            li
+                a(href='#section3311') 3.3.11 创建自增字段
+            li
+                a(href='#section3312') 3.3.12 更新数组后，限制数据元素的个数
+        h4#section331 3.3.1 插入文档
+        p 在MongoDB中，使用方法<code>db.collection.insert()</code>向集合添加文档。
+        strong 插入单个文档
+        p <strong><small>步骤1：向一个集合插入单个文档</small></strong>
+        p 向一个名为<code>inventory</code>的集合插入一个文档。如果执行插入操作时，集合不存在，则插入操作自动创建该集合。
+        .panel.panel-default
+            .panel-heading 示例：插入单个文档
+            .panel-body
+                code db.inventory.insert(<br/>
+                code &emsp;&emsp;{<br/>
+                code &emsp;&emsp;&emsp;&emsp;item: "ABC1",<br/>
+                code &emsp;&emsp;&emsp;&emsp;details: {<br/>
+                code &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;model: "14Q3",<br/>
+                code &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;manufacturer: "XYZ Company"<br/>
+                code &emsp;&emsp;&emsp;&emsp;},<br/>
+                code &emsp;&emsp;&emsp;&emsp;stock: [{size: "S", qty: 25}, {size: "M", qty: 50}],<br/>
+                code &emsp;&emsp;&emsp;&emsp;category: "clothing"<br/>
+                code &emsp;&emsp;}<br/>
+                code )
+        p 执行上述单文档插入操作后，会得到一个<code>WriteResult</code>对象，该对象指示了插入操作的结果状态。成功插入单个文档后，应返回如下结果：
+        p
+            code WriteResult({"nInserted" : 1})
+        p <code>nInserted</code>字段标识成功插入的文档个数。如果插入操作发生异常，则<code>WriteResult</code>对象将包含异常信息。
+        p <strong><small>步骤2：确认已插入文档</small></strong>
+        p 如果步骤1中的插入操作成功返回，可以使用如下查询语句确认已插入的文档：
+        p
+            code db.inventory.find()
+        p 上述查询语句将返回步骤1中插入的文档：
+        p
+            code { "_id" : ObjectId("54b87152eda88cd6fb3cfbb2"), "item" : "ABC1", "details" : { "model" :
+                | "14Q3", "manufacturer" : "XYZ Company" }, "stock" : [ { "size" : "S", "qty" : 25 },
+                | { "size" : "M", "qty" : 50} ], "category" : "clothing" }
+        p 从上述返回结果中可以看出，MongoDB为新插入的文档自动生成了一个<code>_id</code>字段。如果客户端插入的文档不包含<code>_id</code>字段，
+            | 则MongoDB自动为插入文档添加<code>_id</code>字段，并为该字段生成一个唯一<code>ObjectId</code>类型的值。
+        strong 插入文档数组
+        p 可以向方法<code>db.collection.insert()</code>传递一个文档数组，此时完成批量插入。
+        p <strong><small>步骤1：创建一个文档数组</small></strong>
+        p 定义一个名为<code>mydocuments</code>的变量，并将一个文档数组赋值给该变量
+        .panel.panel-default
+            .panel-heading 示例：声明文档数组
+            .panel-body
+                code var mydocuments =<br/>
+                code(style='padding-left:20px;') [<br/>
+                code(style='padding-left:40px;') {<br/>
+                code(style='padding-left:60px;') item: "ABC2",<br/>
+                code(style='padding-left:60px;') details: {model: "14Q3", manufacturer: "M1 Corporation"},<br/>
+                code(style='padding-left:60px;') stock: [{size: "M", qty: 50}],<br/>
+                code(style='padding-left:60px;') category: "clothing"<br/>
+                code(style='padding-left:40px;') },<br/>
+                code(style='padding-left:40px;') {<br/>
+                code(style='padding-left:60px;') item: "MNO2",<br/>
+                code(style='padding-left:60px;') details: {model: "14Q3", manufacturer: "ABC Company"},<br/>
+                code(style='padding-left:60px;') stock: [{size: "S", qty: 5}, {size: "M", qty: 5}, {size: "L", qty: 1}],<br/>
+                code(style='padding-left:60px;') category: "clothing"<br/>
+                code(style='padding-left:40px;') },<br/>
+                code(style='padding-left:40px;') {<br/>
+                code(style='padding-left:60px;') item: "IJK2",<br/>
+                code(style='padding-left:60px;') details: {model: "14Q2", manufacturer: "M5 Corporation"},<br/>
+                code(style='padding-left:60px;') stock: [{size: "S", qty: 5}, {size: "L", qty: 1}],<br/>
+                code(style='padding-left:60px;') category: "houseware"<br/>
+                code(style='padding-left:40px;') }<br/>
+                code(style='padding-left:20px;') ];
+        p <strong><small>步骤2：插入数组</small></strong>
+        p 将步骤1中声明的数组变量<code>mydocuments</code>传递给方法<code>db.collection.insert()</code>:
+        p
+            code db.inventory.insert(mydocuments);
+        p 上述方法将返回一个<code>BulkWriteResult</code>对象，该对象指示了插入操作的结果状态，成功插入后，将返回如下所示的结果：
+        code BulkWriteResult({<br/>
+        code(style='padding-left:20px') "writeErrors": [],<br/>
+        code(style='padding-left:20px') "writeConcernErrors": [],<br/>
+        code(style='padding-left:20px') "nInserted": 3,<br/>
+        code(style='padding-left:20px') "nUpserted": 0,<br/>
+        code(style='padding-left:20px') "nMatched": 0,<br/>
+        code(style='padding-left:20px') "nModified": 0,<br/>
+        code(style='padding-left:20px') "nRemoved": 0,<br/>
+        code(style='padding-left:20px') "upserted": []<br/>
+        code })
+        p <code>nInserted</code>字段标识成功插入的文档个数。如果插入操作发生异常，则<code>BulkWriteResult</code>对象将包含异常信息。
+        p 上述插入的3个文档，MongoDB为各个文档添加了唯一的<code>_id</code>字段。
+        strong 使用<code>Bulk</code>完成批量插入
+        p 版本2.6的新特性
+        p 除了使用<code>db.collection.insert()</code>方法完成批量插入，MongoDB还提供了<code>Bulk()</code>API。
+            | 以下步骤详细介绍了如何使用<code>Bulk()</code>完成批量文档的插入操作。
+        p <strong><small>步骤1：初始化<code>Bulk</code>操作构造器</small></strong>
+        p 使用以下语法为集合<code>inventory</code>声明一个<code>Bulk</code>操作构造器：
+        p
+            code var bulk = db.inventory.initializeUnorderedBulkOp();
+        p 上述语句返回一个集合相关的无序操作构造器，该构造器维护了一个将要被执行操作的列表。无序操作意味着MongoDB可以并行执行构造器中的操作，
+            | 而不用关注执行操作的先后顺序。如果在执行过程中某个写操作发生异常，MongoDB将继续执行列表中的剩余操作。
+        p 同样，可以使用方法<code>db.collection.initializeOrderedBulkOp()</code>声明一个有序操作构造器。
+        p <strong><small>步骤2：将插入操作添加到<code>Bulk</code>操作构造器</small></strong>
+        p 使用<code>Bulk.insert()</code>方法向变量<code>bulk</code>添加两个插入操作.
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code bulk.insert(<br/>
+                code(style='padding-left:20px;') {<br/>
+                code(style='padding-left:40px;') item: "BE10",<br/>
+                code(style='padding-left:40px;') details: { model: "14Q2", manufacturer: "XYZ Company" },<br/>
+                code(style='padding-left:40px;') stock: [ { size: "L", qty: 5 } ],<br/>
+                code(style='padding-left:40px;') category: "clothing"<br/>
+                code(style='padding-left:20px;') }<br/>
+                code );<br/>
+                code bulk.insert(<br/>
+                code(style='padding-left:20px;') {<br/>
+                code(style='padding-left:40px;') item: "ZYT1",<br/>
+                code(style='padding-left:40px;') details: { model: "14Q1", manufacturer: "ABC Company" },<br/>
+                code(style='padding-left:40px;') stock: [ { size: "S", qty: 5 }, { size: "M", qty: 5 } ],<br/>
+                code(style='padding-left:40px;') category: "houseware"<br/>
+                code(style='padding-left:20px;') }<br/>
+                code );<br/>
+        p <strong><small>步骤3：执行Bulk操作构造器</small></strong>
+        p 通过<code>bulk</code>对象的<code>execute()</code>方法执行构造器中的操作列表。
+        p
+            code bulk.execute();
+        p 上述方法将返回一个<code>BulkWriteResult</code>对象，该对象指示了插入操作的结果状态，成功插入后，将返回如下所示的结果：
+        code BulkWriteResult({<br/>
+        code(style='padding-left:20px') "writeErrors": [],<br/>
+        code(style='padding-left:20px') "writeConcernErrors": [],<br/>
+        code(style='padding-left:20px') "nInserted": 2,<br/>
+        code(style='padding-left:20px') "nUpserted": 0,<br/>
+        code(style='padding-left:20px') "nMatched": 0,<br/>
+        code(style='padding-left:20px') "nModified": 0,<br/>
+        code(style='padding-left:20px') "nRemoved": 0,<br/>
+        code(style='padding-left:20px') "upserted": []<br/>
+        code })
+        p <code>nInserted</code>字段标识成功插入的文档个数。如果插入操作发生异常，则<code>BulkWriteResult</code>对象将包含异常信息。
+        strong 其他插入文档的方法
+        p 方法<code>db.collection.update()</code>、方法<code>db.collection.findAndModify()</code>、方法<code>db.collection.save</code>
+            | 同样可以完成文档插入操作，具体用法请参考相关API。
+        h4#section332 3.3.2 查询文档
+        p 在MongoDB中，方法<code>db.collection.find()</code>用于从集合中获取文档记录。方法<code>db.collection.find()</code>返回一个指向结果集的<code>指针（Cursor）</code>。
+        .alert.alert-info
+            p 方法<code>db.collection.findOne()</code>用于从集合中获取单个文档。在内部实现上，
+                | 方法<code>db.collection.findOne()</code>是带有limit 1选项的<code>db.collection.find()</code>方法
+        p 本教程描述了在<code>mongo</code>shell中使用<code>db.collection.find()</code>方法获取数据的方法。在这些示例中，
+            | 结果集包含文档的所有字段。如果需要限制返回结果集中文档的字段，请参考<a href='#section333'>指定查询语句返回的字段</a>。
+        strong 获取集合的所有文档
+        p 使用空查询文档来获取集合中的所有文档记录：
+        p
+            code db.inventory.find({})
+        p 在方法<code>db.collection.find()</code>中不指定参数，效果和指定一个空查询文档相同，所以，下述查询方法和上述查询方法是等效的：
+        p
+            code db.inventory.find()
+        strong 指定相等过滤条件
+        p 为了在查询语句中指定相等过滤条件，可以使用查询文档<code>{field : value}</code>，该查询文档获取集合中所有字段field的值等于value的的文档。
+        p 下例中的查询语句从集合<code>inventory</code>中获取所有字段<code>type</code>的值为<code>snacks</code>的文档记录。
+        p
+            code db.inventory.find({type: "snacks"})
+        strong 使用查询操作符指定查询条件
+        p 在MongoDB的查询语句中，可以在查询文档中使用<em>查询操作符</em>来指定查询条件
+        p 下例查询语句从集合<code>inventory</code>中获取所有满足查询条件的文档记录，查询条件为：文档<code>type</code>字段的值为<code>food</code>或<code>snacks</code>。
+        p
+            code db.inventory.find({type: {$in: ['food', 'snacks']}})
+        p 虽然可以使用<code>$or</code>查询操作符完成功能上和上述查询语句等效的操作，但是在针对单个字段相等性判断时，通常使用操作符<code>$in</code>。
+        strong 指定<code>AND</code>条件
+        p 通常情况下，一个查询语句往往包含多个并列的查询条件。MongoDB隐式的将查询文档中的所有过滤条件使用逻辑与操作符连接起来，因此，
+            | 结果集必须满足查询文档中的所有查询条件。
+        p 在如下示例中，查询文档指定了<code>type</code>字段的相等条件，以及<code>price</code>字段的小于条件，
+            | 必须同时满足这两个条件的文档会被筛选出来。
+        p
+            code db.inventory.find({type: 'food', price: {$lt: 9.95}})
+        p 上述查询语句从集合<code>inventory</code>中获取所有满足<code>type</code>字段的值为<code>food</code>，
+            | 并且<code>price</code>字段的值小于<code>9.95</code>这两个条件的文档。
+        strong 指定<code>OR</code>条件
+        p 使用<code>$or</code>操作符，可以指定逻辑或条件。即：只要满足查询条件中的至少一个就会被筛选出来。
+        p 在如下示例中，查询语句从集合<code>inventory</code>中获取满足<code>qty</code>字段的值大于<code>100</code>，
+            | 或者<code>price</code>字段的值小于9.95这两个条件中的一个的文档。
+        p
+            code db.inventory.find({$or: [{qty: {$gt: 100}}, {price: {$lt: 9.95}}]})
+        strong 同时指定<code>AND</code>和<code>OR</code>条件
+        p 如下查询语句必须同时满足以下两个查询条件：
+        ul
+            li 文档<code>type</code>字段的值为<code>food</code>
+            li 文档<code>qty</code>字段的值大于<code>100</code>，或者字段<code>price</code>的值小于<code>9.95</code>
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({<br/>
+                code(style='padding-left:20px;') type: 'food'<br/>
+                code(style='padding-left:20px;') $or: [{qty: {$gt: 100}}, {price: {$lt: 9.95}}]<br/>
+                code })
+        strong 嵌套文档
+        p 当文档的一个字段持有一个嵌套文档时，查询语句可以精确完整匹配该嵌套文档，也可以通过<code>点符号（.）</code>匹配嵌套文档中的某些字段。
+        p <strong><small>精确完整匹配嵌套文档</small></strong>
+        p 为了指定嵌套文档的精确完整匹配，可以使用查询文档<code>{field : value}</code>， 其中，<code>value</code>代表需要匹配的嵌套文档。
+            | 精确完整匹配时，不单单指嵌套文档的字段值，同样包含字段的顺序。
+        p 如下示例中，查询语句从集合<code>inventory</code>中获取字段<code>producer</code>值为一个嵌套文档的文档记录，
+            | 该嵌套文档包含值为<code>ABC123</code>的<code>company</code>字段，值为<code>123 street</code>的<code>address</code>字段，
+            | 并且字段的顺序是：先<code>company</code>字段，后<code>address</code>字段。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({<br/>
+                code.two producer:{<br/>
+                code.third company: 'ABC123',<br/>
+                code.third address: '123 Street'<br/>
+                code.two }<br/>
+                code })
+        p <strong><small>匹配嵌套文档的某些字段</small></strong>
+        p 可以使用<code>点符号（.）</code>来匹配嵌套文档的某些字段。嵌套文档指定字段的匹配指的是匹配文档必须包含指定值的指定字段，
+            | 但是嵌套字段可以拥有其他额外的字段。
+        p 如下示例中，查询语句从集合<code>inventory</code>中获取<code>producer</code>字段的嵌套文档包含一个值为<code>ABC123</code>的<code>company</code>字段的文档，
+            | 同时，该嵌套文档可能包含<code>company</code>之外的其他字段。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({<br/>
+                code.two 'producer.company': 'ABC123'<br/>
+                code })
+        strong 数组
+        p 当文档中的一个字段持有一个数组类型时，可以精确匹配整个数组，也可以匹配数组中的指定元素。如果数组含有嵌套文档，
+            | 可以使用上文提到的<code>点符号（.）</code>来匹配嵌套文档的指定字段。
+        p 如果使用<code>$elemMatch</code>操作符指定了多个查询条件，则数组中必须包含至少一个元素满足所有的查询条件.
+        p 如果没有使用<code>$elemMatch</code>操作符指定多个查询条件，则数组中的一些元素的组合必须满足所有的查询条件，
+            | 即：不必是单个元素满足所有查询条件。也就是说：数组中的不同元素满足不同的查询条件，只要整体满足查询条件即可。
+        p 下文中有关数组的查询语句使用如下的示例文档记录：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code { _id: 5, type: 'food', item: 'aaa', ratings: [5, 8, 9] }<br/>
+                code { _id: 6, type: 'food', item: 'bbb', ratings: [5, 9] }<br/>
+                code { _id: 7, type: 'food', item: 'ccc', ratings: [9, 5, 8] }
+        p <strong><small>精确匹配数组</small></strong>
+        p 可是用查询文档<code>{field : value}</code>精确完整匹配一个数组，其中，<code>value</code>是需要匹配的数组。
+            | 精确完整匹配数组，不单单需要数组元素的匹配，也需要数组元素的顺序匹配。
+        p 如下示例中，查询语句从集合<code>inventory</code>中获取字段<code>ratings</code>的值为<code>[5, 8, 9]</code>的文档，
+            | 并且数组元素的顺序必须是<code>[5, 8, 9]</code>。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({<br/>
+                code.two ratings: [5, 8, 9]<br/>
+                code })
+                p 上述查询语句的返回结果为：
+                code { "_id" : 5, "type" : "food", "item" : "aaa", "ratings" : [ 5, 8, 9 ] }
+        p <strong><small>匹配单个数组元素</small></strong>
+        p 可以匹配数组中的某个元素，即：如果数组中包含至少一个指定元素则匹配成功。
+        p 如下例所示，查询语句从集合<code>inventory</code>中获取<code>ratings</code>字段的数组包含元素<code>5</code>的文档。
+        .panel.panel-default
+            .panel-heading 实例
+            .panel-body
+                code db.inventory.find({ratings: 5})
+                p 上述查询语句的返回结果为：
+                code { _id: 5, type: 'food', item: 'aaa', ratings: [5, 8, 9] }<br/>
+                code { _id: 6, type: 'food', item: 'bbb', ratings: [5, 9] }<br/>
+                code { _id: 7, type: 'food', item: 'ccc', ratings: [9, 5, 8] }
+        p <strong><small>匹配数组中指定位置的元素</small></strong>
+        p 可以使用<code>点符号（.）</code>来准确匹配数组中指定位置的元素。
+        p 如下例所示，查询语句从集合<code>inventory</code>中获取<code>ratings</code>字段的数组中第一个元素是<code>5</code>的文档。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({'ratings.0': 5})
+                p 上述查询语句的返回结果为：
+                code { _id: 5, type: 'food', item: 'aaa', ratings: [5, 8, 9] }<br/>
+                code { _id: 6, type: 'food', item: 'bbb', ratings: [5, 9] }
+        p <strong><small>数组元素满足多个查询条件</small></strong>
+        ul
+            li 数组的单个元素同时满足多个查询条件
+                p 可以使用<code>$elemMatch</code>操作符指定多个查询条件，此时，数组中必须包含至少一个元素同时满足指定的多个查询条件。
+                p 如下例所示，查询语句从<code>inventory</code>中获取<code>ratings</code>字段的数组中必须包含至少一个元素同时大于5小于9的文档。
+                .panel.panel-default
+                    .panel-heading 示例
+                    .panel-body
+                        code db.inventory.find({ratings: {$elemMatch: {$gt: 5, $lt: 9}}})
+                        p 上述查询语句的返回结果为：
+                        code { _id: 5, type: 'food', item: 'aaa', ratings: [5, 8, 9] }<br/>
+                        code { _id: 7, type: 'food', item: 'ccc', ratings: [9, 5, 8] }
+            li 数组的多个元素满足多个查询条件
+                p 如下例所示，文档只要满足以下条件之一即可被匹配到：
+                ul
+                    li 数组中的某些元素大于5，并且数组中的某些元素小于9
+                    li 数组中的某些元素同时满足大于5小于9的查询条件
+                .panel.panel-default
+                    .panel-heading 示例
+                    .panel-body
+                        code db.inventory.find({ratings: {$gt: 5, $lt: 9}})
+                        p 上述查询语句的返回结果为：
+                        code { _id: 5, type: 'food', item: 'aaa', ratings: [5, 8, 9] }<br/>
+                        code { _id: 6, type: 'food', item: 'bbb', ratings: [5, 9] }<br/>
+                        code { _id: 7, type: 'food', item: 'ccc', ratings: [9, 5, 8] }
+                        p 结果中的第二个文档之所以被匹配到，是因为元素9大于5，并且5小于9.
+        strong 嵌套文档数组
+        p 假设集合<code>inventory</code>包含以下文档记录：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code {<br/>
+                code.two _id: 100,<br/>
+                code.two type: "food",<br/>
+                code.two item: "xyz",<br/>
+                code.two qty: 25,<br/>
+                code.two price: 2.5,<br/>
+                code.two ratings: [ 5, 8, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "shipping" }, { memo: "approved", by: "billing" } ]<br/>
+                code }<br/>
+                code {<br/>
+                code.two _id: 101,<br/>
+                code.two type: "fruit",<br/>
+                code.two item: "jkl",<br/>
+                code.two qty: 10,<br/>
+                code.two price: 4.25,<br/>
+                code.two ratings: [ 5, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "payment" }, { memo: "delayed", by: "shipping" } ]<br/>
+                code }
+        p <strong><small>使用数组下标匹配数组文档中的单个字段</small></strong>
+        p 如果知道文档在数组中的下标，可以使用<code>点符号（.）</code>定位到嵌套的字段。
+        p 如下例所示，查询语句从集合<code>inventory</code>中匹配文档，匹配文档的<code>memos</code>字段是一个数组，
+            | 数组的第一个元素是一个嵌套文档，嵌套文档的<code>by</code>字段的值为<code>shipping</code>。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({'memos.0.by': 'shipping'})
+                p 上述查询语句的结果为：
+                code {<br/>
+                code.two _id: 100,<br/>
+                code.two type: "food",<br/>
+                code.two item: "xyz",<br/>
+                code.two qty: 25,<br/>
+                code.two price: 2.5,<br/>
+                code.two ratings: [ 5, 8, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "shipping" }, { memo: "approved", by: "billing" } ]<br/>
+                code }<br/>
+        p <strong><small>不使用数组下标匹配数组文档中的单个字段</small></strong>
+        p 如果不知道嵌套文档在数组中的下标，可以将嵌套文档的字段名称使用<code>点符号（.）</code>连接到数组字段名后，用来匹配嵌套文档的指定字段。
+        p 如下例所示，查询语句从集合<code>inventory</code>中匹配文档，匹配文档的<code>memos</code>字段是一个数组，
+            | 数组中至少有一个嵌套文档的<code>by</code>字段的值为<code>shipping</code>。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({'memos.by': 'shipping'})
+                p 上述查询语句的结果为：
+                code {<br/>
+                code.two _id: 100,<br/>
+                code.two type: "food",<br/>
+                code.two item: "xyz",<br/>
+                code.two qty: 25,<br/>
+                code.two price: 2.5,<br/>
+                code.two ratings: [ 5, 8, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "shipping" }, { memo: "approved", by: "billing" } ]<br/>
+                code }<br/>
+                code {<br/>
+                code.two _id: 101,<br/>
+                code.two type: "fruit",<br/>
+                code.two item: "jkl",<br/>
+                code.two qty: 10,<br/>
+                code.two price: 4.25,<br/>
+                code.two ratings: [ 5, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "payment" }, { memo: "delayed", by: "shipping" } ]<br/>
+                code }
+        p <strong><small>数组嵌套文档的单个字段满足多个查询条件</small></strong>
+        p 使用<code>$elemMatch</code>操作符指定多个操作符，此时
