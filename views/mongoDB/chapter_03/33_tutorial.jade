@@ -387,4 +387,218 @@ block content
                 code.two memos: [ { memo: "on time", by: "payment" }, { memo: "delayed", by: "shipping" } ]<br/>
                 code }
         p <strong><small>数组嵌套文档的单个字段满足多个查询条件</small></strong>
-        p 使用<code>$elemMatch</code>操作符指定多个操作符，此时
+        p 使用<code>$elemMatch</code>操作符指定多个查询条件时，此时，数组的嵌套文档中必须至少有一个嵌套文档满足所有的查询条件。
+        p 如下例所示，查询语句从集合<code>inventory</code>中获取匹配文档，并且匹配到的嵌套文档必须满足字段<code>memo</code>的值为<code>on time</code>，
+            | 字段<code>by</code>的值为<code>shipping</code>两个查询条件。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({<br/>
+                code.two memos: {$elemMatch: {memo: 'on time', by: 'shipping'}}<br/>
+                code })
+                p 上述查询语句的结果为：
+                code {<br/>
+                code.two _id: 100,<br/>
+                code.two type: "food",<br/>
+                code.two item: "xyz",<br/>
+                code.two qty: 25,<br/>
+                code.two price: 2.5,<br/>
+                code.two ratings: [ 5, 8, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "shipping" }, { memo: "approved", by: "billing" } ]<br/>
+                code }<br/>
+        p <strong><small>数组嵌套文档的多个字段满足多个查询条件</small></strong>
+        p 如下例所示，查询语句从<code>inventory</code>中获取匹配文档，要求字段<code>memos</code>包含一个嵌套文档数组，
+            | 并且嵌套文档必须满足以下查询条件之一：
+        ul
+            li 某个嵌套文档的<code>memo</code>字段的值为<code>on time</code>，另外某个嵌套文档的<code>by</code>字段的值为<code>shipping</code>
+            li 某个嵌套文档的<code>memo</code>字段的值为<code>on time</code>，同时该文档的<code>by</code>字段的值为<code>shipping</code>
+        p 并且，字段<code>memos</code>可以包含其他类型的元素。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({<br/>
+                code.two 'memos.memo': 'on time',<br/>
+                code.two 'memos.by': 'shipping'<br/>
+                code })
+                p 上述查询语句的结果为：
+                code {<br/>
+                code.two _id: 100,<br/>
+                code.two type: "food",<br/>
+                code.two item: "xyz",<br/>
+                code.two qty: 25,<br/>
+                code.two price: 2.5,<br/>
+                code.two ratings: [ 5, 8, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "shipping" }, { memo: "approved", by: "billing" } ]<br/>
+                code }<br/>
+                code {<br/>
+                code.two _id: 101,<br/>
+                code.two type: "fruit",<br/>
+                code.two item: "jkl",<br/>
+                code.two qty: 10,<br/>
+                code.two price: 4.25,<br/>
+                code.two ratings: [ 5, 9 ],<br/>
+                code.two memos: [ { memo: "on time", by: "payment" }, { memo: "delayed", by: "shipping" } ]<br/>
+                code }
+        h4#section333 3.3.3 指定查询语句返回的字段
+        p 可以使用<em>投影</em>指定匹配到的文档返回哪些字段。投影可以指定需要返回哪些文档，或者指定不需要返回哪些字段。
+        p 投影使用以下语法：
+        table.table.table-bordered
+            thead
+                tr
+                    th 语法
+                    th 描述
+            tbody
+                tr
+                    td field: 1 or true
+                    td 指定需要返回的字段
+                tr
+                    td field: 0 or false
+                    td 指定不需要返回的字段
+        .alert.alert-danger 默认情况下，返回文档总是包含<code>_id</code>字段，如果不需要返回<code>_id</code>字段，
+            | 则需要显式的指定投影操作：<code>_id: 0</code>。
+        p 投影操作中，不能混合使用排除和包含操作，只有一个例外情况：针对<code>_id</code>字段的投影操作。
+        p 本节内容详细介绍了如何限制返回结果文当集中的字段。本节的示例查询均是在<code>mongo</code> shell中使用方法<code>db.collection.find()</code>查询
+             | 集合<code>inventory</code>。方法<code>db.collection.find()</code>返回一个指向查询结果集的<code>指针（Cursor）</code>。
+        strong 返回查询结果集的所有字段
+        p 如果在查询语句中没有指定投影操作，则<code>db.collection.find()</code>方法默认返回查询结果集的所有字段
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({type: 'food'})
+                p 上述查询语句返回集合<code>inventory</code>中所有字段<code>type</code>值为<code>food</code>的所有文档，
+                    | 并且，返回匹配文档的所有字段。
+        strong 只返回指定字段和<code>_id</code>字段
+        p 可以使用投影操作显式的指定需要返回的字段。如下例所示，<code>find()</code>方法返回所有的匹配文档。在结果集中，
+            | 只返回<code>item</code>和<code>qty</code>字段，默认情况下（没有显示的排除），<code>_id</code>字段也被包含在结果集中。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({type: 'food'}, {item: 1, qty: 1})
+                p 上述查询语句返回集合<code>inventory</code>中所有字段<code>type</code>值为<code>food</code>的所有文档，
+                    | 并且只返回匹配文档的<code>item</code>、<code>qty</code>和<code>_id</code>字段。
+        strong 只返回指定字段
+        p 如果不需要返回<code>_id</code>字段，需要显式的在投影操作中排除，如下所示：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({type: 'food'}, {item: 1, qty: 1, _id: 0})
+                p 上述查询语句返回集合<code>inventory</code>中所有字段<code>type</code>值为<code>food</code>的所有文档，
+                    | 并且只返回匹配文档的<code>item</code>和<code>qty</code>字段。
+        strong 返回除排除字段以外的所有字段
+        p 可以使用投影操作显式的指定不需要返回的单个字段或多个字段，如下所示：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.find({type: 'food'}, {type: 0})
+                p 上述查询语句返回集合<code>inventory</code>中所有字段<code>type</code>值为<code>food</code>的所有文档，
+                    | 并且除<code>type</code>字段外，返回匹配文档的其他所有字段。
+        strong 数组字段的投影操作
+        p 对于数组字段的投影操作，MongoDB提供了<code>$elemMatch、$slice、$</code>投影操作符。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合<code>inventory</code>包含以下文档：<br/>
+                    code {'_id': 5, 'type': 'food', 'item': 'aaa', 'ratings': [5, 8, 9]}
+                p 如下例所示，查询语句使用<code>$slice</code>操作符只返回字段<code>ratings</code>数组的前两个元素：<br/>
+                    code db.inventory.find({_id: 5}, {ratings: {$slice: 2}})
+                p 只能使用操作符<code>$elemMatch、$slice、$</code>指定数组字段的投影操作，不能使用数组下标指定。即：
+                    | <code>{'ratings.0': 1}</code>不能投影数组的第一个元素。
+        h4#section334 3.3.4 在<code>mongo</code> shell中遍历指针
+        p 方法<code>db.collection.find()</code>返回一直指向结果集的指针。为了获得结果集中的文档记录，需要遍历该指针。
+            | 但是，在<code>mongo</code> shell中，如果没有将该指针赋值给一个使用<code>var</code>声明的变量，
+            | 则自动取出该指针中的前20条记录，并将它们打印到控制台中。下文详述了如何手工遍历获得的指针以获取结果集中的文档，
+            | 以及使用迭代器下标获取结果文档记录。
+        strong 手工遍历结果集指针
+        p 在<code>mongo</code> shell中，如果将<code>db.collection.find()</code>方法返回的结果集指针赋值给一个使用<code>var</code>声明的变量，
+            | 则指针不会被自动遍历。
+        p 以下几种方法详述了如何在<code>mongo</code> shell中手工遍历结果集指针：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                ul
+                    li 在<code>mongo</code> shell中输入指针变量，则自动获取指针变量的前20条记录，并将该20条记录打印到控制台中，代码如下：
+                        p
+                            code var myCursor = db.inventory.find({type: 'food'});
+                            code myCursor
+                    li 可以使用指针变量的<code>next()</code>方法获取文档记录：
+                        p
+                            code var myCursor = db.inventory.find({type: 'food'});<br/>
+                            code while(myCursor.hasNext()) {<br/>
+                            code.two print(tojson(myCursor.next()));<br/>
+                            code }
+                        p 可以使用方法<code>printjson()</code>代替方法<code>print(tojson())</code>。
+                    li 可以使用指针变量的<code>forEach()</code>方法获取文档记录：
+                        p
+                            code var myCursor = db.inventory.find({type: 'food'});<br/>
+                            code myCursor.forEach(printjson);
+        strong 迭代器下标
+        p 在<code>mongo</code> shell中，可以使用指针的<code>toArray()</code>方法完全遍历结果集，并将结果集保存在一个数组中，如下所示：
+        p
+            code var myCursor = db.inventory.find({type: 'food'});<br/>
+            code var documentArray = myCursor.toArray();<br/>
+            code var myDocument = documentArray[3];
+        p 方法<code>toArray()</code>会将指针指向的文档全部加载到内存中，即：<code>toArray()</code>方法将指针消耗完毕。
+        p 另外，一些驱动程序提供了使用指针下标获取文档的快捷方法（即：<code>cursor[index]</code>）。其实，这种方法仍然是调用了指针的<code>toArray()</code>方法，
+            | 然后在<code>toArray()</code>方法返回的结果中使用下标获取结果文档记录。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 如下所示：<br/>
+                    code var myCursor = db.inventory.find({type: 'food'});<br/>
+                    code var myDocument = myCursor[3];
+                p 上述代码中的<code>var myDocument = myCursor[3];</code>其实等价于以下代码：<br/>
+                    code var myDocument = myCursor.toArray()[3];
+        h4#section335 3.3.5 分析查询语句的性能
+        p 透过指针方法<code>explain()</code>，可以探测在MongoDB数据库内部，查询语句是如何执行的。
+            | 可以使用该方法来分析查询语句的性能，以及用来查看查询语句使用索引的情况。可以使用方法<code>explain</code>来检测查询语句的行为，
+            | 但是不能检测查询语句具体的查询性能如何。因为<code>explain()</code>方法针对查询语句会尝试多个查询计划，
+            | 并不能准确的反映出查询语句的性能如何。
+        .panel.panel-info
+            .panel-heading 个人理解
+            .panel-body <code>explain()</code>方法并不能反映出一个查询语句的性能如何，只是直观的列出查询语句在MongoDB数据库内容是如何运行的，
+                | 查询语句性能的优劣必须是通过人为判断得出的，即：通过对比不同查询语句的<code>explain()</code>结果集。
+        strong 评估查询语句的性能
+        p 通过在<code>db.collection.find()</code>方法末尾添加指针方法<code>explain()</code>来得到对应的输出结果。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设在集合<code>inventory</code>中，文档的<code>type</code>字段上存在一个索引，可以通过以下语句来评估针对<code>type</code>字段的查询。
+                    code db.inventory.find({type: 'food'}).explain();
+                p 上述语句的输出结果为：
+                    code {<br/>
+                    code.two "cursor" : "BtreeCursor type_1",<br/>
+                    code.two "isMultiKey" : false,<br/>
+                    code.two "n" : 5,<br/>
+                    code.two "nscannedObjects" : 5,<br/>
+                    code.two "nscanned" : 5,<br/>
+                    code.two "nscannedObjectsAllPlans" : 5,<br/>
+                    code.two "nscannedAllPlans" : 5,<br/>
+                    code.two "scanAndOrder" : false,<br/>
+                    code.two "indexOnly" : false,<br/>
+                    code.two "nYields" : 0,<br/>
+                    code.two "nChunkSkips" : 0,<br/>
+                    code.two "millis" : 0,<br/>
+                    code.two "indexBounds" : { "type" : [ [ "food", "food" ] ] },<br/>
+                    code.two "server" : "mongodbo0.example.net:27017"<br/>
+                    code }
+                p 上述结果各个字段的解释如下：
+                    ul
+                        li <code>"cursor" : "BtreeCursor type_1"</code>表示该查询语句使用了索引。
+                        li <code>"n" : 5</code>表示该查询语句最终返回5个文档。
+                        li <code>"nscanned" : 5</code>表示为了获得最终的5个结果文档，查询语句需要从索引中遍历5个文档。
+                        li <code>"nscannedObjects" : 5</code>表示查询语句从索引中获取5个文档后，需要从集合<code>inventory</code>中获取对应的5个文档（为了获取索引中不存在的字段值）。
+                p 如果查询语句没有使用索引，则需要完全遍历集合<code>inventory</code>的记录以获取最终的5个文档。
+        strong 比较索引的性能
+        p 如果对于一个查询语句而言，存在多个可用的索引，可以通过使用<code>hint()</code>方法来比较各个索引的性能。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p
+                    code db.inventory.find({type: 'food'}).hint({type: 1}).explain();<br/>
+                    code db.inventory.find({type: 'food'}).hint({type: 1, name: 1}).explain()
+                p 上述两个查询语句只会使用在<code>hint()</code>方法中指定的索引。
+        .alert.alert-danger 如果在<code>explain()</code>方法前没有使用<code>hint()</code>方法，
+            | 则查询优化器会重新为查询语句生成查询计划，并且尝试使用多个索引已返回查询语句的统计数据。
+        h4#section336 3.3.6 更新文档
+        p
+
