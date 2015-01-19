@@ -666,5 +666,126 @@ block content
                     code WriteResult({ "nMatched" : 3, "nUpserted" : 0, "nModified" : 3 })
         strong 替换文档
         p 为了替换文档的除<code>_id</code>字段外的所有内容，可以向<code>update()</code>方法的第二个参数传递一个完整的文档记录。
-        p
+        p 替换文档可以拥有与被替换文档不同的字段。在替换文档中，可以省略<code>_id</code>字段，因为该字段的值是不变的。
+            | 如果在替换文档存在<code>_id</code>字段，则必须保证替换文档和被替换文档的<code>_id</code>字段值相同。
+        p <strong><small>步骤1：替换一个已存在的文档</small></strong>
+        p 如下例所示，更新语句将集合<code>inventory</code>中字段<code>item</code>值为<code>BE10</code>的第一个文档，
+            | 替换为一个新文档，该新文档只包含<code>_id、item、stock、category</code>4个字段。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.update(<br/>
+                code.two {item: 'BE10'},<br/>
+                code.two {<br/>
+                code.third item: 'BE05',<br/>
+                code.third stock:[{size: 'S', qty: 20}, {size: 'M', qty: 5}],<br/>
+                code.third category: 'apparel',<br/>
+                code.two }<br/>
+                code )
+                p 上述更新语句返回一个<code>WriteResult</code>对象，该对象包含了更新语句的执行结果信息。
+                    | 一个成功的更新语句返回如下所示的<code>WriteResult</code>对象：
+                p
+                    code WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+        strong <code>upsert</code>选项
+        p 默认情况下，方法<code>update()</code>如果没有匹配到任何文档，则该方法不会做任何操作。
+        p 但是，通过为方法<code>update()</code>指定<code>upsert: true</code>选项，如果匹配到文档，则执行更新操作；
+            | 如果没有匹配到文档，则执行插入操作。
+        p <strong><small>步骤1：为替换文档的更新语句指定<code>upsert: true</code>选项</small></strong>
+        p 当为一个替换文档更新语句（即：更新语句的更新操作文档部分为一个完整的文档对象）指定<code>upsert: true</code>选项时，
+            | 如果没有匹配文档，则MongoDB首先使用更新条件文档中的相等条件创建一个新文档，然后使用更新操作文档替换新创建文档除<code>_id</code>字段外的其他所有字段。
+        p 如下例所示，更新语句如果匹配到文档，则执行文档替换操作，如果没有匹配到文档，则执行插入操作。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.update(<br/>
+                code.two { item: "TBD1" },<br/>
+                code.two {<br/>
+                code.third item: "TBD1",<br/>
+                code.third details: { "model" : "14Q4", "manufacturer" : "ABC Company" },<br/>
+                code.third stock: [ { "size" : "S", "qty" : 25 } ],<br/>
+                code.third category: "houseware"<br/>
+                code.two },<br/>
+                code.two { upsert: true }<br/>
+                code )
+                p 上述更新语句如果成功返回，则返回一个如下所示的<code>WriteResult</code>对象：
+                p
+                    code WriteResult({<br/>
+                    code.two "nMatched" : 0,<br/>
+                    code.two "nUpserted" : 1,<br/>
+                    code.two "nModified" : 0,<br/>
+                    code.two "_id" : ObjectId("53dbd684babeaec6342ed6c7")<br/>
+                    code })
+                p 其中，各个字段的解释如下：
+                    ul
+                        li <code>nMatched</code>：更新语句匹配到的文档数
+                        li <code>nUpserted</code>：更新语句插入的文档数
+                        li <code>nModified</code>：更新语句更新的文档数
+                        li <code>_id</code>：MongoDB为插入文档生成的<code>_id</code>字段的值
+        p <strong><small>步骤2：为更新制定字段的更新语句指定<code>upsert: true</code>选项</small></strong>
+        p 当为一个更新文档指定字段的更新语句指定<code>upsert: true</code>选项时，如果没有匹配到文档，则MongoDB首先使用更新条件文档中的相等条件创建一个新文档，
+            | 然后使用更新操作文档部分更新新创建的文档。
+        p 如下例所示，更新语句如果匹配到文档，则执行文档更新操作，如果没有匹配到文档，则执行插入操作。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.update(<br/>
+                code.two { item: "TBD2" },<br/>
+                code.two {<br/>
+                code.third $set: {<br/>
+                code.fourth details: { "model" : "14Q3", "manufacturer" : "IJK Co." },<br/>
+                code.fourth category: "houseware"<br/>
+                code.third }<br/>
+                code.two },<br/>
+                code.two { upsert: true }<br/>
+                code )
+                p 上述更新语句如果成功返回，则返回一个如下所示的<code>WriteResult</code>对象：
+                p
+                    code WriteResult({<br/>
+                    code.two "nMatched" : 0,<br/>
+                    code.two "nUpserted" : 1,<br/>
+                    code.two "nModified" : 0,<br/>
+                    code.two "_id" : ObjectId("53dbd684babeaec6342ed6c7")<br/>
+                    code })
+                p 其中，各个字段的解释如下：
+                    ul
+                        li <code>nMatched</code>：更新语句匹配到的文档数
+                        li <code>nUpserted</code>：更新语句插入的文档数
+                        li <code>nModified</code>：更新语句更新的文档数
+                        li <code>_id</code>：MongoDB为插入文档生成的<code>_id</code>字段的值
+        strong 其他更新文档的方法
+        p 方法<code>db.collection.findAndModify()、db.collection.save</code>也可以完成更新已存在文档或插入新文档的功能。
+        h4#section337 3.3.7 删除文档
+        p 在MongoDB中，可以使用方法<code>db.collection.remove()</code>方法从一个集合中删除文档。
+            | 可以从一个集合中删除所有文档、删除满足条件的文档、删除单个文档。
+            | 本节内容详述了在<code>mongo</code> shell中使用方法<code>db.collection.remove()</code>删除文档的各种用法。
+        strong 删除一个集合中的所有文档
+        p 如果需要删除一个集合中的所有文档，可以向方法<code>db.collection.remove()</code>传递一个空文档（即：{}）参数。
+            | <code>remove()</code>方法不会删除集合关联的索引。
+        p 如下例所示，语句从集合<code>inventory</code>中删除所有文档：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.remove({});
+                p 如果需要删除一个集合中的所有文档，更高效的方法是：在集合上调用方法<code>drop()</code>，以删除整个集合，
+                    | 包括集合关联的索引，然后重建集合和相关索引。
+        strong 删除满足条件的文档
+        p 为了有条件的删除集合中的文档，可以在方法<code>update()</code>中指定删除条件，指定删除条件的语法和查询语句语法相同。
+        p 如下例所示，语句删除集合<code>inventory</code>中所有<code>type</code>字段值为<code>food</code>的文档：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.remove({type: 'food'});
+                p 对于大批量数据的删除操作，更高效的方法是：首先将集合中需要保留的文档拷贝到一个新的集合中，然后将原集合删除。
+        strong 删除单个匹配文档
+        p 为了删除单个文档，可以将方法<code>remove()</code>的第二个参数置为：<code>true</code>或<code>1</code>
+        p 如下例所示，语句从集合<code>inventory</code>中删除单个满足<code>type</code>字段值为<code>food</code>条件的文档。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.remove({type: 'food'}, 1);
+                p 如果需要删除某个按照指定顺序返回的文档，可以使用<code>findAndModify()</code>方法。
+        h4#section338 3.3.8 两阶段提交
+        strong 简介
+        p 
+
 
