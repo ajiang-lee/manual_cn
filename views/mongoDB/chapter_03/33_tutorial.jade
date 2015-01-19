@@ -600,5 +600,71 @@ block content
         .alert.alert-danger 如果在<code>explain()</code>方法前没有使用<code>hint()</code>方法，
             | 则查询优化器会重新为查询语句生成查询计划，并且尝试使用多个索引已返回查询语句的统计数据。
         h4#section336 3.3.6 更新文档
+        p MongoDB提供了<code>update()</code>方法用于更新集合中的文档记录。该方法接收以下参数：
+            ul
+                li 更新条件文档，用于过滤需要更新的文档
+                li 更新操作文档，用于指定具体的更新操作
+                li 可选参数
+        p 其中，<code>update()</code>方法的第一个参数：更新条件文档，该参数的语法和查询语句的语法相同。
+        p 默认情况下，<code>update()</code>方法只更新单个文档，如果需要更新多个文档，需要在第三个参数中指定<code>multi</code>选项。
+        strong 更新文档的指定字段
+        p 为了更新文档的某个字段，MongoDB提供了各种<code>更新操作符</code>，比如用于修改字段值的<code>$set</code>更新操作符。
+        p 对于一些更新操作符（比如：<code>$set</code>），如果目标文档不存在指定字段，则创建这些字段。
+        p <strong><small>步骤1：使用更新操作符改变字段值</small></strong>
+        p 如下例所示，从集合<code>inventory</code>中获取文档字段<code>item</code>值为<code>MNO2</code>的文档，
+            | 使用<code>$set</code>更新操作符将字段<code>category</code>和<code>details</code>修改为指定值，
+            | 并且使用<code>$currentDate</code>更新操作符将字段<code>lastModified</code>修改为当前时间。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.update(<br/>
+                code.two {item: 'MNO2'},<br/>
+                code.two {<br/>
+                code.third $set: {<br/>
+                code.fourth category: 'apparel',<br/>
+                code.fourth details: {model: '14Q3', manufacturer: 'XYZ Company'}<br/>
+                code.third },<br/>
+                code.third $currentDate: {lastModified: true}<br/>
+                code.two }<br/>
+                code )
+                p 上述更新语句返回一个<code>WriteResult</code>对象，该对象包含了更新语句的执行结果信息。
+                    | 一个成功的更新语句返回如下所示的<code>WriteResult</code>对象：
+                p
+                    code WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+                p 其中，字段<code>nMatched</code>字段标识该更新语句的过滤条件匹配到的文档数，
+                    | <code>nModified</code>字段标识该更新语句更新的文档数。
+        p <strong><small>步骤2：更新嵌套文档的字段</small></strong>
+        p 可以使用<code>点符号（.）</code>更新文档中的嵌套文档的字段。当使用点符号时，必须将字段名至于引号中，如下例所示：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.update(<br/>
+                code.two {item: 'ABC1'},<br/>
+                code.two {$set: {'details.model': '14Q2'}}<br/>
+                code )
+                p 上述更新语句返回一个<code>WriteResult</code>对象，该对象包含了更新语句的执行结果信息。
+                    | 一个成功的更新语句返回如下所示的<code>WriteResult</code>对象：
+                p
+                    code WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+        p <strong><small>步骤3：更新多个文档</small></strong>
+        p 默认情况下，<code>update()</code>方法更新单个文档。如果需要更新多个文档，可以在<code>update()</code>方法中添加<code>multi</code>选项。
+        p 如下例所示：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.inventory.update(<br/>
+                code.two {category: 'clothing'},<br/>
+                code.two {<br/>
+                code.third $set: {category: 'apparel'},<br/>
+                code.third $currentDate: {lastModified: true}<br/>
+                code.two },<br/>
+                code.two {multi: true}<br/>
+                code )
+                p 上述更新语句返回一个<code>WriteResult</code>对象，该对象包含了更新语句的执行结果信息。
+                    | 一个成功的更新语句返回如下所示的<code>WriteResult</code>对象：
+                p
+                    code WriteResult({ "nMatched" : 3, "nUpserted" : 0, "nModified" : 3 })
+        strong 替换文档
+        p 为了替换文档的除<code>_id</code>字段外的所有内容，可以向<code>update()</code>方法的第二个参数传递一个完整的文档记录。
         p
 
