@@ -786,6 +786,69 @@ block content
                 p 如果需要删除某个按照指定顺序返回的文档，可以使用<code>findAndModify()</code>方法。
         h4#section338 3.3.8 两阶段提交
         strong 简介
-        p 
+        p 本节内容详述了如何使用两阶段提交模式来执行多文档更新操作，并且确保更新操作处于同一个事务中。另外，可以通过扩展该模式来实现一个类似回滚的操作。
+        strong 背景
+        p 在MongoDB中，单文档操作是原子性的；但是，涉及多文档的更新操作并不是原子性的。由于MongoDB的文档可以包含复杂的嵌套文档，
+            | 结合单文档操作的原子性，对于某些情况，可以实现“多文档更新”的原子性。
+        p 尽管可以通过结合单文档操作的原子性和嵌套文档来实现伪多文档操作，但是现实情况中却存在针对单独多个文档的更新操作，并且需要确保操作的原子性。
+            | 当执行一个包含多个操作的事务时，可能存在以下问题：
+            ul
+                li 原子性：如果某个操作失败，则事务中的其他操作必须回滚到事务开始前的状态（即：该事务什么都不做）
+                li 一致性：如果一个致命错误发生（比如：网络问题、硬件问题）在事务执行过程中，数据库必须有能力恢复到一个一致状态
+        p 对于需要多文档操作的事务，可以在程序中实现两阶段提交操作提供事务支持。两阶段提交操作可以确保在一个事务中，如果发生错误，事务是可恢复的。
+            | 但是，在两阶段提交过程中，文档数据可能是暂时有效的。
+        .alert.alert-danger
+            p 注意：在MongoDB中，只有单文档操作是原子性的，两阶段提交操作只能提供类似的事务处理，因此，应用程序可能读取到文档的中间状态值。
+        strong 模式
+        p <strong><small>概述</small></strong>
+        p 考虑如下情景：将资金从账户A转移到账户B。在关系型数据库中，可以将从账户A转出资金和将资金转入账户B这两个操作置于单个事务中。
+            | 在MongoDB中，可以通过两阶段提交操作模拟关系型数据库中的事务操作。
+        p 对于上述两阶段提交操作的情景，需要用到如下两个集合：
+            ul
+                li 名为<code>accounts</code>的集合用于存储账户信息
+                li 名为<code>transactions</code>的集合用于保存在两阶段提交操作过程中产生的相关信息
+        p <strong><small>初始化源账户和目的账户信息</small></strong>
+        p 向集合<code>accounts</code>插入账户A和账户B的信息
+            .panel.panel-default
+                .panel-heading 示例
+                .panel-body
+                    code db.accounts.insert([<br/>
+                    code.two {_id: 'A', balance: 1000, pendingTransactions: []},<br/>
+                    code.two {_id: 'B', balance: 1000, pendingTransactions: []}<br/>
+                    code ])
+        p <strong><small>初始化转账记录</small></strong>
+        p 对于每个转账操作，需要向集合<code>transactions</code>中插入一条记录，用于保存该转账动作。并且转账记录应包含以下信息：
+            ul
+                li 字段<code>source、destination</code>，该两个字段关联到集合<code>accounts</code>的<code>_id</code>字段
+                li 字段<code>value</code>，该字段用于指定本次转账的金额
+                li 字段<code>state</code>，该字段标识转账动作的当前状态。可以包含以下状态值：<code>initial、pending、applied、done、canceling、canceled</code>
+                li 字段<code>lastModified</code>字段，记录最后一次修改的时间（每次更改状态值时，都需要更新该字段）
+        p 为了初始化从账户A转账100到账户B动作，需要向集合<code>transactions</code>插入如下记录：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code db.transactions.insert(<br/>
+                code.two {_id: 1, source: 'A', destination: 'B', value: 100, state: 'initial', lastModified: new Date()}<br/>
+                code )
+        p <strong><small>使用两阶段提交完成转账操作</small></strong>
+        dl
+            dt 步骤1：获取需要处理的事务
+            dd
+                p 是的
+            dt 步骤2：更新事务状态为pending
+            dd
+                p 螺丝刀快解放
+            dt 步骤3：将事务应用到两个账户
+            dd
+                p 螺丝刀快解放
+            dt 步骤4：更新事务状态为applied
+            dd
+                p 螺丝刀快解放
+            dt 步骤5：更新账户的事务列表
+            dd
+                p 螺丝刀快解放
+            dt 步骤6：更新事务状态为done
+            dd
+                p 螺丝刀快解放
 
 
