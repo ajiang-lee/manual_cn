@@ -834,21 +834,255 @@ block content
         dl
             dt 步骤1：获取需要处理的事务
             dd
-                p 是的
+                p 从集合<code>transaction</code>中获取一个<code>state</code>字段值为<code>initial</code>的文档。
+                    | 如果按照上文步骤进行到此，此时集合中只有一个待处理的事务。如果集合中存在多个待处理事务，则需要限制查询语句的返回结果：
+                p
+                    code var t = db.transactions.findOne({state: 'initial'});
+                p 上述查询语句将返回单个待处理事务：
+                p
+                    code { "_id" : 1, "source" : "A", "destination" : "B", "value" : 100, "state" : "initial", "lastModified" :... }
+
             dt 步骤2：更新事务状态为pending
             dd
-                p 螺丝刀快解放
+                p 将上述事务记录的状态从<code>initial</code>更新为<code>pending</code>：
+                p
+                    code db.transactions.update({_id: t._id, state: 'initial'}, {$set: {state: 'pending'}, $currentDate: {lastModified: true}});
+                p 上述更新语句中的<code>state: 'initial'</code>条件确保没有其他进程修改了该条记录。如果更新语句的返回结果中<code>nModified</code>的值为0，
+                    | 即：没有更新任何记录，则结束当前操作，返回步骤1从新开始另外一个两阶段提交操作。
             dt 步骤3：将事务应用到两个账户
             dd
-                p 螺丝刀快解放
+                p 如果该事务尚未被应用到对应文档时，使用<code>update()</code>方法将上文获取到的事务<code>t</code>应用到源账户和目的账户。
+                    | 为了避免重复应用事务到对应文档，在<code>update()</code>方法的更新条件中添加过滤条件<code>pendingTransactions: {$ne: t._id}</code>。
+                p 为了应用该事务到对应文档中，需要更新源账户和目的账户的<code>balance、pendingTransactions</code>两个字段。
+                p 首先，更新源账户：
+                p
+                    code db.accounts.update({_id: t.source, pendingTransactions: {$ne: t._id}}, {$inc: {balance: -t.balance}, $push: {pendingTransactions: t._id}});
+                p 然后，更新目的账户：
+                p
+                    code db.accounts.update({_id: t.destination, pendingTransactions: {$ne: t._id}}, {$inc: {balance: t.balance}, $push: {pendingTransactions: t._id}});
             dt 步骤4：更新事务状态为applied
             dd
-                p 螺丝刀快解放
+                p 使用如下更新语句将对应事务的状态值更新为<code>applied</code>：
+                p
+                    code db.transactions.update({_id: t._id, state: 'pending'}, {$set: {state: 'applied'}, $currentDate: {lastModified: true}});
             dt 步骤5：更新账户的事务列表
             dd
-                p 螺丝刀快解放
+                p 从源账户和目的账户的事务列表字段中移除状态值为<code>applied</code>的事务，如下：
+                p
+                    code db.accounts.update({_id: t.source, pendintTransactions: t._id}, {$pull: {pendingTransactions: t._id}});<br/>
+                    code db.accounts.update({_id: t.destination, pendintTransactions: t._id}, {$pull: {pendingTransactions: t._id}});
             dt 步骤6：更新事务状态为done
             dd
-                p 螺丝刀快解放
+                p 到此为止，该条事务执行完毕，需要将事务记录的状态值更新为<code>done</code>，如下所示：
+                p
+                    code db.transactions.update({_id: t._id, state: 'applied'}, {$set: {state: 'done'}, $currentDate: {lastModified: true}});
+        strong 从失败场景中恢复
+        p 关于多文档操作的事务处理，最重要的不是上文所述的执行过程，而是当事务失败时，如果从失败中恢复。本小节内容详述了在各阶段失败时如何恢复。
+        p <strong><small>恢复操作</small></strong>
+        p 上文中介绍的两阶段提交模式允许应用程序当失败产生时，可以恢复事务以使数据恢复到一致的状态。可以在应用程序启动时，或者定期去检测未完成事务，然后恢复未完成事务。
+        p 将数据恢复到一致状态的耗时取决于应用程序需要多长时间恢复事务。
+        p 如下示例中使用<code>lastModified</code>字段作为判断事务是否需要恢复的标识；即：如果一个<code>pending、applied</code>状态的事务，
+            | 如果在过去的30分钟没有被更新，则该事务需要恢复。当然，根据实际情况，可以选择不同的判断标识。
+        p <strong><small>恢复<code>pending</code>状态的事务</small></strong>&emsp;如果一个事务在<code>步骤2：更新事务事务状态为pending</code>之后，
+            | 在<code>步骤4：更新事务状态为applied</code>之前失败，为了恢复该事务，首先从<code>transactions</code>中获取pending状态未完成的事务：
+        p
+            code var dateThreshold = new Date();<br/>
+            code dateThreshold.setMinutes(dateThreshold.getMinutes() - 30);<br/>
+            code var t = db.transactions.findOne({state: 'pending', lastModified: {$lt: dateThreshold}});
+        p 获取未完成事务后，从<code>步骤3：将事务应用到两个账户</code>开始重新开始应用该事务。
+        p <strong><small>恢复<code>applied</code>状态的事务</small></strong>&emsp;如果一个事务在<code>步骤4：更新事务事务状态为applied</code>之后，
+            | 在<code>步骤6：更新事务状态为done</code>之前失败，为了恢复该事务，首先从<code>transactions</code>中获取applied状态未完成的事务：
+        p
+            code var dateThreshold = new Date();<br/>
+            code dateThreshold.setMinutes(dateThreshold.getMinutes() - 30);<br/>
+            code var t = db.transactions.findOne({state: 'applied', lastModified: {$lt: dateThreshold}});
+        p 获取未完成事务后，从<code>步骤5：更新账户的事务列表</code>开始重新开始应用该事务。
+        strong 回滚操作
+        p 在有些场景中，可能需要回滚或取消一个事务；即：应用程序需要取消事务，或者应用程序检测到账户不存在时，需要取消事务。
+        p <strong><small>回滚<code>applied</code>状态的事务</small></strong>&emsp;当事务执行完<code>步骤4：更新事务状态为applied</code>，
+            | 此时，该事务不能被回滚。相反，必须按顺序执行完该事务，然后重启一个新事务，该新事务执行和原事务相反的操作。
+        p <strong><small>回滚<code>pending</code>状态的事务</small></strong>&emsp;当事务执行完<code>步骤2：更新事务状态为pending</code>，
+            | 可以按照如下步骤回滚事务：
+            ul
+                li 步骤1：更新事务状态为canceling
+                    p 将事务状态从<code>pending</code>调整为<code>canceling</code>
+                    p
+                        code db.transactions.update({_id: t._id, state: 'pending'}, {$set: {state: 'canceling'}, $currentDate: {lastModified: true}});
+                li 步骤2：取消两个账户的操作
+                    p 为了取消事务中对两个账户的操作，需要反转原事务的操作。在更新语句的过滤条件中，需要包含条件<code>pendingTransactions: t._id</code>，
+                        | 这样可以确保只反转已经更新账户的操作。
+                    p
+                        code db.accounts.update({_id: t.destination, pendingTransactions: t._id}, {$incr: {balance: -t.value}, $pull{pendingTransactions: t._id}});<br/>
+                        code db.accounts.update({_id: t.source, pendingTransactions: t._id}, {$incr: {balance: t.value}, $pull{pendingTransactions: t._id}});
+                li 步骤3：更新事务状态为canceled
+                    p 为了标识已完成事务的回滚操作，需要将事务状态从<code>canceling</code>更改为<code>canceled</code>：
+                    p
+                        code db.transactions.update({_id: t._id, state: 'canceling'}, {$set: {state: 'canceled'}, $currentDate: {$lastModified: true}});
+        strong 多应用程序
+        p 由于事务的存在，多个应用程序可以并发的执行更新操作而不用担心数据的一致性或者操作的冲突。在上文的示例中，
+            | 为了更新或者获取事务对象（transactions集合中的文档），过滤条件中始终包含<code>state</code>字段的判断，
+            | 这样做是为了避免重复应用事务到关联文档。
+        p 比如，应用程序<code>App1、App2</code>同时获取状态值为<code>initial</code>的事务。<code>App1</code>先于<code>App2</code>完成了整个事务，
+            | 当<code>App2</code>尝试执行<code>步骤2：更新事务状态为pending</code>时，由于过滤条件<code>state: 'initial'</code>的存在，
+            | 更新语句不会更新任何文档，即更新语句的返回结果中<code>nMatched、nModified</code>的值为0。此时，<code>App2</code>应该重新从<code>步骤1：获取需要处理的事务</code>开始，
+            | 重新执行一个不同的事务。
+        p 当多个应用程序同时运行时，必须确保在任何时间点只有单个应用程序在处理指定的单个事务。所以，为了标识事务是属于哪个应用程序的，
+            | 除了在事务文档中指定<code>state</code>字段，还需要添加一个标识应用程序的字段<code>application</code>，
+            | 可以使用<code>findAndModify()</code>方法完成获取和更改操作：
+        p
+            code t = db.transactions.findAndModify(<br/>
+            code.two {<br/>
+            code.third query: { state: "initial", application: { $exists: false } },<br/>
+            code.third update:{<br/>
+            code.fourth $set: { state: "pending", application: "App1" },<br/>
+            code.fourth $currentDate: { lastModified: true }<br/>
+            code.third },<br/>
+            code.third new: true<br/>
+            code.two }<br/>
+            code )
+        p 如果<code>App1</code>在事务执行过程中出现异常，可以参考上文的<em>恢复操作</em>执行后续操作。但是，应用程序必须确保：
+            | 应用程序只会执行属于自己的事务，如下所示：
+        p
+            code var dateThreshold = new Date();<br/>
+            code dateThreshold.setMinutes(dateThreshold.getMinutes() - 30);<br/>
+            code db.transactions.find(<br/>
+            code.two {<br/>
+            code.third application: "App1",<br/>
+            code.third state: "pending",<br/>
+            code.third lastModified: { $lt: dateThreshold }<br/>
+            code.two }<br/>
+            code )
+        strong 在生产环境中使用两阶段提交操作
+        p 上文介绍的有关两阶段提交操作的示例是非常简单的。比如：上例中的转账操作假设账户可以接受负值。
+        p 对于所有的事务操作，请确保部署的MongoDB数据库已经配置了适合的<em>写关注（write concern）</em>。
+        h4#section339 3.3.9 跟踪指针（Tailable Cursor）
+        strong 简介
+        p 默认情况下，MongoDB在客户端消耗完一个指针后会自动关闭该指针。但是，对于<em>capped collection</em>，可以使用<em>跟踪指针</em>，
+            | 当客户端消耗完跟踪指针中初始数据后，跟踪指针仍然保持打开状态。跟踪指针在概念上等同于Unix系统中的<code>tail -f</code>命令。
+            | 当客户端向capped collection插入一个新文档后，跟踪指针会继续获取到新插入的文档。
+        p 当一个没有capped collection拥有大量的写入操作，但是没有关联索引时，可以考虑使用跟踪指针。比如，
+            | MongoDB的复制操作使用跟踪指针用于跟踪primary的oplog。
+        .alert.alert-danger 如果查询语句查询的字段上存在索引，不要使用跟踪指针，需要使用普通的指针。跟踪查询语句返回的最后一个索引字段的值，
+            | 为了获取新插入的文档，可以使用如下语句:<br/>
+            | db.collection.find({indexedField: {$gt: lastValue}});<br/>
+            | 上述语句利用了索引是有序的特性。
+        p 跟踪指针拥有以下行为：
+            ul
+                li 跟踪指针不会使用索引，并且按照文档的插入顺序返回
+                li 由于跟踪指针不会使用索引，所以初始查询的代价可能较高；但是，一旦跟踪指针开始返回数据，后续的结果返回的代价并不高。
+                li 如果出现以下情况，跟踪指针可能会变得不可用：
+                    ul
+                        li 查询语句没有结果需要返回
+                        li 跟踪指针已返回集合中的数据，但是接着应用程序删除了集合中的剩余文档
+            p 如果一个跟踪指针变得不可用，此时，该跟踪指针的id为0；
+        p 对于具体的使用细节，请参考对应的驱动文档。
+        h4#section3310 3.3.10 操作的隔离
+        strong 简介
+        p 在MongoDB中，只有针对单文档的写操作是原子性的，即：一个写操作只能原子性的操作单个文档，不能原子性的操作多个文档。
+        p 当一个写操作影响多个文档时，整个写操作不是原子性的，其他的操作可能插入到该写操作的执行过程中。针对单文档的写操作永远是原子性的，
+            | 即便该写操作更改了单文档中的多个嵌套文档。
+        p 虽然MongoDB中只有单文档的写操作是原子性的，但是，可以通过使用<coode>隔离操作符</code>将一个影响多个文档的写操作隔离起来。
+        p 本节内容介绍了一种隔离操作的方法：首先获取需要更新的文档，更新时如果开始获取的文档和当前文档的状态一直，此时才能执行更新操作
+            | （类似于关系数据库中的乐观锁机制）。除了该种方法外，如下方法也能够提供操作的隔离：
+            ul
+                li 使用<code>findAndModify()</code>方法实现查询和更新操作的原子性
+                li 使用上文介绍的两阶段提交模式
+                li 通过<em>唯一性索引</em>实现键值的唯一性
+        strong 只有在文档没有发生改变的情况下更新文档（类似关系数据库中的乐观锁机制）
+        p 在该模式中，需要进行如下操作：
+            ul
+                li 查询一个文档
+                li 根据需要修改文档的指定字段
+                li 更新文档（只有在文档字段没有被其他用户修改的情况下）
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+            code var myCollection = db.products;<br/>
+            code var myDocument = myCollection.findOne( { sku: 'abc123' } );<br/>
+            code if (myDocument) {<br/>
+            code.two var oldQty = myDocument.qty;<br/>
+            code.two if (myDocument.qty < 10) {<br/>
+            code.third myDocument.qty *= 4;<br/>
+            code.two } else if ( myDocument.qty < 20 ) {<br/>
+            code.third myDocument.qty *= 3;<br/>
+            code.two } else {<br/>
+            code.third myDocument.qty *= 2;<br/>
+            code.two }<br/>
+            code.two var results = myCollection.update(<br/>
+            code.third {<br/>
+            code.fourth _id: myDocument._id,<br/>
+            code.fourth qty: oldQty<br/>
+            code.third },<br/>
+            code.third {<br/>
+            code.fourth $set: { qty: myDocument.qty }<br/>
+            code.third }<br/>
+            code.two );<br/>
+            code.two if ( results.hasWriteError() ) {<br/>
+            code.fourth print("unexpected error updating document: " + tojson( results ));<br/>
+            code.two } else if ( results.nMatched == 0 ) {<br/>
+            code.fourth print("No update: no matching document for { _id: " + myDocument._id + ", qty: " + oldQty }<br/>
+            code }
+        p 对于上述模式的实际使用，可能需要作出以下调整：
+            ul
+                li 在<code>update()</code>方法中，将原始文档的所有字段作为过滤条件，以确保原始文档的所有字段都没有发生改变
+                li 在文档中添加一个版本号字段，应用程序维护该字段的值，每次更新操作都会将该字段加1，然后再<code>update()</code>方法中使用该版本号字段作为过滤条件
+                li 只更改需要更改的字段，确保更新操作不会影响文档其他字段的值
+                li 使用<a href='#section3311'>3.3.11 创建自增字段</a>中介绍的方法
+        h4#section3311 3.3.11 创建自增字段
+        strong 简介
+        p MongoDB保证所有文档拥有一个<code>_id</code>主键，<code>_id</code>必须是唯一的，并且拥有相关联的唯一性索引。但是，
+            | 处理通过唯一索引来达到<code>_id</code>字段值的唯一性，本文介绍了如下两种方法用于为<code>_id</code>字段生成序列：
+            ul
+                li 使用Counters集合
+                li 乐观循环
+        strong 说明
+        p 在MongoDB中，通常情况下，并不需要为<code>_id</code>字段或其他字段生成自增长的序列，因为这样做并不会大规模的降低数据库的大小，
+            | 并且并不是所有字段都适合自增长的序列。通常来讲，<code>_id</code>字段的默认值（<em>ObjectId</em>）是非常合适的。
+        strong 实现方法
+        p <strong><small>使用Counters集合</small></strong>
+        p <strong><small>实现Counters集合</small></strong>&emsp;使用一个独立的<code>counters</code>集合用于跟踪最后一个序列号。
+            | <code>_id</code>字段记录序列的名称，<code>seq</code>字段记录序列值。
+            ol
+                li 向集合<code>counters</code>插入需要生成的序列：
+                    p
+                        code db.counters.insert({_id: 'userid', seq: 0});
+                li 创建<code>getNextSequence()</code>方法：
+                    p
+                        code function getNextSequence(name) {<br/>
+                        code.two var ret = db.counters.findAndModify(<br/>
+                        code.third {<br/>
+                        code.fourth query: {_id: name},<br/>
+                        code.fourth update: {$inc: {seq: 1}},<br/>
+                        code.fourth new: true<br/>
+                        code.third }<br/>
+                        code.two );<br/>
+                        code.two return ret.seq;<br/>
+                        code }
+                li 在<code>insert()</code>方法中使用<code>getNextSequence(name)</code>方法：
+                    p
+                        code db.users.insert(<br/>
+                        code.two {<br/>
+                        code.third _id: getNextSequence("userid"),<br/>
+                        code.third name: "Sarah C."<br/>
+                        code.two }<br/>
+                        code )<br/><br/>
+                        code db.users.insert(<br/>
+                        code.two {<br/>
+                        code.third _id: getNextSequence("userid"),<br/>
+                        code.third name: "Sarah C."<br/>
+                        code.two }<br/>
+                        code )
+                    p 结果为：
+                        code {<br/>
+                        code.two _id : 1,<br/>
+                        code.two name : "Sarah C."<br/>
+                        code }<br/>
+                        code {<br/>
+                        code.two _id : 2,<br/>
+                        code.two name : "Bob D."<br/>
+                        code }
+        p <strong>findAndModify()方法的行为特点<small></small></strong>&emsp;
+        p <strong><small>乐观循环</small></strong>
+
 
 
