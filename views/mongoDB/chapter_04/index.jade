@@ -1,0 +1,19 @@
+extends ../../layout
+
+block content
+    .container
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li.active 数据模型
+        p MongoDB中的数据结构是十分灵活的，<em>集合</em>不会强制<em>文档</em>的结构。这种灵活性可以使用使用者充分依据具体的应用场景，
+            | 以及必须要的性能考虑来设计自己的数据模型。
+        ul
+            li
+                a(href='/mongoDB/model/introduction') 4.1&emsp;简介
+            li
+                a(href='/mongoDB/model/concept') 4.2&emsp;相关概念
+            li
+                a(href='/mongoDB/model/example') 4.3&emsp;示例
+            li
+                a(href='/mongoDB/model/reference') 4.4&emsp;参考资料

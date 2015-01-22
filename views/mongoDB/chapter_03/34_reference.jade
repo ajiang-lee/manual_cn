@@ -1,0 +1,513 @@
+extends ../../layout
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/crud') CRUD
+            li.active 参考资料
+        h3#section32 3.4 参考资料
+        p 本节内容描述了MongoDB数据库的常用方法，以及与关系型数据库的对应关系。主要包含以下内容：
+            ul
+                li
+                    a(href='/mongoDB/crud/reference/section341') 3.4.1 查询指针相关方法
+                li
+                    a(href='/mongoDB/crud/reference/section342') 3.4.2 集合相关方法
+                li
+                    a(href='/mongoDB/crud/reference/section343') 3.4.3 MongDB CRUD参考文档
+                        ul
+                            li
+                                a(href='/mongoDB/crud/reference/section3431') 3.4.3.1 写关注参考
+                            li
+                                a(href='/mongoDB/crud/reference/section3432') 3.4.3.2 SQL和MongoDB的对应关系
+        h4#section341 3.4.1 查询指针相关方法
+        table.table.table-bordered
+            thead
+                tr
+                    th 方法名
+                    th 方法描述
+            tbody
+                tr
+                    td
+                        code cursor.count()
+                    td 返回指针中结果文档的总数
+                tr
+                    td
+                        code cursor.explain()
+                    td 返回查询语句的查询计划，包括索引的使用情况
+                tr
+                    td
+                        code cursor.hint()
+                    td 强制该查询语句使用指定的索引
+                tr
+                    td
+                        code cursor.limit()
+                    td 限制指针的结果集的大小
+                tr
+                    td
+                        code cursor.next()
+                    td 返回指针的下一个结果文档
+                tr
+                    td
+                        code cursor.skip()
+                    td 指定指针在返回结果集时，需要跳过的文档数量
+                tr
+                    td
+                        code cursor.sort()
+                    td 指示指针应该按照指定字段的指定顺序返回结果集
+                tr
+                    td
+                        code cursor.toArray()
+                    td 以数组的形式返回指针的所有结果文档
+        h4#section342 3.4.2 集合相关方法
+        table.table.table-bordered
+            thead
+                tr
+                    th 方法名
+                    th 方法描述
+            tbody
+                tr
+                    td
+                        code db.collection.count()
+                    td 返回集合中文档的总数
+                tr
+                    td
+                        code db.collection.distinct()
+                    td 返回文档数组，并且数组中的文档对于指定字段没有重复值
+                tr
+                    td
+                        code db.collection.find()
+                    td 执行针对一个文档的查询语句，返回一个指向结果集的指针
+                tr
+                    td
+                        code db.collection.findOne()
+                    td 执行针对一个文档的查询语句，返回单个文档
+                tr
+                    td
+                        code db.collection.insert()
+                    td 向集合插入新文档
+                tr
+                    td
+                        code db.collection.remove()
+                    td 从集合中删除指定文档
+                tr
+                    td
+                        code db.collection.save()
+                    td 方法<code>insert()和update()</code>的结合方法
+                tr
+                    td
+                        code db.collection.update()
+                    td 更新集合中的文档
+        h4#section343 3.4.3 MongDB CRUD参考文档
+        h4#section3431 3.4.3.1 写关注参考
+        p 写关注描述了当一个写操作成功时，MongoDB提供的关于该操作成功的可信度。
+        p 版本2.6中做出以下改变：定义了一个关于写操作的新的协议，该协议将写关注和写操作本身结合起来，避免了之前版本中命令<code>getLastError</code>的调用。
+            | 在之前的版本中，为了指定写操作的写关注，必须在写操作执行后立即额外的调用命令<code>getLastError</code>。
+        strong 读操作的隔离行为
+        p MongoDB允许客户端读取未提交的新插入文档或者更新文档，而不管写关注的等级和日志配置是如何设定的（即：关系型数据库中的读未提交的事务隔离级别）。
+            | 导致的结果就是，应用程序可能会出现以下两种情况：
+            ul
+                li 如果存在多个并发的读操作和写操作，MongoDB允许客户端在写操作未返回时读取写操作的数据。
+                li 如果<code>mongod</code>实例在日志提交前异常终止，即便一个写操作已经成功返回，实例重启后，写操作的数据会丢失（即：查询语句查询不到该数据）。
+        p 在其他关系型数据库中，将上述隔离特性定义为<em>读未提交</em>。对于所有的插入和更新操作，MOngoDB确保在单文档上的操作是原子性的：
+            | 客户端不可能看到某个文档的中间状态。对于多文档操作，MongoDB不提供事务隔离。
+        p 当<code>mongod</code>实例返回一个<code>journaled</code>级别的写关注时，标识着数据已经被成功写入磁盘，即便<code>mongod</code>实例重启，
+            | 数据也不会丢失。
+        p 对于副本集，只有在写操作被复制，并且已经提交到副本集中的主要成员后，该写操作才是持久化的。不管写关注等级如何，
+            | MongoDB总会定期的提交数据到日志中：<code>commitInterval</code>参数决定了<code>mongod</code>实例提交日志的周期。
+        strong 可用的写关注（原文）
+        .panel.panel-default
+            .panel-heading 原文
+            .panel-body
+                p Write concern can include the w (page 119) option to specify the required number of acknowledgments before returning,
+                    | the j (page 119) option to require writes to the journal before returning, and wtimeout (page 119) option to specify
+                    | a time limit to prevent write operations from blocking indefinitely.
+                    | In sharded clusters, mongos instances will pass the write concern on to the shard.
+                p <strong>w Option</strong> The w option provides the ability to disable write concern entirely as well as specify the write concern for replica sets.
+                p MongoDB uses w: 1 as the default write concern. w: 1 provides basic receipt acknowledgment.
+                p The w option accepts the following values:
+                table.table.table-bordered
+                    thead
+                        tr
+                            th Value
+                            th Description
+                    tbody
+                        tr
+                            td 1
+                            td Provides acknowledgment of write operations on a standalone mongod or the primary in a
+                                | replica set.
+                                | This is the default write concern for MongoDB.
+                        tr
+                            td 0
+                            td Disables basic acknowledgment of write operations, but returns information about socket
+                                | exceptions and networking errors to the application.
+                                | If you disable basic write operation acknowledgment but require journal commit
+                                | acknowledgment, the journal commit prevails, and the server will require that mongod
+                                | acknowledge the write operation.
+                        tr
+                            td Number greater than 1
+                            td Guarantees that write operations have propagated successfully to the specified number of replica
+                                | set members including the primary.
+                                | For example, w: 2 indicates acknowledgements from the primary and at least one secondary.
+                                | If you set w to a number that is greater than the number of set members that hold data,
+                                | MongoDB waits for the non-existent members to become available, which means MongoDB
+                                | blocks indefinitely.
+                        tr
+                            td "majority"
+                            td Confirms that write operations have propagated to the majority of configured replica set: a
+                                | majority of the set’s configured members must acknowledge the write operation before it
+                                | succeeds. This allows you to avoid hard coding assumptions about the size of your replica set
+                                | into your application.
+                                | Changed in version 2.6: In Master/Slave (page 538) deployments, MongoDB treats w:
+                                | "majority" as equivalent to w: 1. In earlier versions of MongoDB, w: "majority"
+                                | produces an error in master/slave (page 538) deployments.
+                        tr
+                            td tag set
+                            td By specifying a tag set (page 576), you can have fine-grained control over which replica set
+                                | members must acknowledge a write operation to satisfy the required level of write concern.
+                p <strong>j Option</strong> The j option confirms that the mongod instance has written the data to the on-disk journal. This ensures
+                    | that data is not lost if the mongod instance shuts down unexpectedly. Set to true to enable.
+                p Changed in version 2.6: Specifying a write concern that includes j: true to a mongod or mongos running with
+                 | --nojournal option now errors. Previous versions would ignore the j: true.
+                .alert.alert-danger
+                    p Note: Requiring journaled write concern in a replica set only requires a journal commit of the write operation to the
+                        | primary of the set regardless of the level of replica acknowledged write concern.
+                p <strong>wtimeout</strong> This option specifies a time limit, in milliseconds, for the write concern. wtimeout is only applicable
+                    | for w values greater than 1.
+                p wtimeout causes write operations to return with an error after the specified limit, even if the required write concern
+                    | will eventually succeed. When these write operations return, MongoDB does not undo successful data modifications
+                    | performed before the write concern exceeded the wtimeout time limit.
+                p If you do not specify the wtimeout option and the level of write concern is unachievable, the write operation will
+                    | block indefinitely. Specifying a wtimeout value of 0 is equivalent to a write concern without the wtimeout option.
+        h4#section3432 3.4.3.2 SQL和MongoDB的对应关系
+        strong 术语和概念
+        p 以下表格展示了SQL中的术语和概念与MongoDB中的术语和概念的对应关系。
+        table.table.table-bordered
+            thead
+                tr
+                    th SQL
+                    th MongoDB
+            tbody
+                tr
+                    td database（数据库）
+                    td database（数据库）
+                tr
+                    td table（表）
+                    td collection（集合）
+                tr
+                    td row（行）
+                    td document or BSON document（文档）
+                tr
+                    td column（列）
+                    td field（字段）
+                tr
+                    td index（索引）
+                    td index（索引）
+                tr
+                    td table joins（关联表查询）
+                    td embedded documents and linking（嵌套文档）
+                tr
+                    td primary key（主键）
+                    td primary key（主键）
+                tr
+                    td 指定任意列或任意列组合作为主键
+                    td 在MongoDB中，自动指定<code>_id</code>字段为主键
+                tr
+                    td 聚合（即：group by子句）
+                    td 聚合管道
+        strong 可执行程序
+        p 以下表格列举了不同数据库的可执行程序。
+        table.table.table-bordered
+            thead
+                tr
+                    th 类型
+                    th MongoDB
+                    th MySql
+                    th Oracle
+                    th Infomix
+                    th DB2
+            tbody
+                tr
+                    td 服务端
+                    td mongod
+                    td mysqld
+                    td oracle
+                    td IDS
+                    td DB2 Server
+                tr
+                    td 客户端
+                    td mongo
+                    td mysql
+                    td sqlplus
+                    td DB-Access
+                    td DB2 Client
+        strong 示例
+        p 以下表格展示了SQL语句和MongoDB语句不同类型语句的对应关系。示例基于以下假设：
+            ul
+                li SQL语句使用的表名为<code>users</code>
+                li MongoDB使用的集合为<code>users</code>，集合中的文档具有以下字段：
+                    p
+                        code {<br/>
+                        code.two _id: ObjectId('509a8fb2f3f4948bd2f983a0'),<br/>
+                        code.two user_id: 'abc123',<br/>
+                        code.two age: 55,<br/>
+                        code.two status: 'A'<br/>
+                        code }
+        p <strong><small>创建和更新表结构</small></strong>
+        table.table.table-bordered
+            thead
+                tr
+                    th(width='50%') SQL
+                    th(width='50%') MongoDB
+            tbody
+                tr
+                    td
+                        code CREATE TABLE users (<br/>
+                        code.two id MEDIUMINT NOT NULL AUTO_INCREMENT,<br/>
+                        code.two user_id Varchar(30),<br/>
+                        code.two age Number,<br/>
+                        code.two status char(1),<br/>
+                        code.two PRIMARY KEY (id)<br/>
+                        code )
+                    td 在MongoDB中，第一次插入文档到集合中时，隐式的创建集合，并且，如果插入文档没有指定<code>_id</code>字段，
+                        | 该字段被字段添加。
+                        p
+                            code db.users.insert({<br/>
+                            code.two user_id: 'abc123',<br/>
+                            code.two age: 55,<br/>
+                            code.two status: 'A'<br/>
+                            code })
+                        p 除上述隐式创建集合外，也可以使用如下方法显示的创建集合：
+                        p
+                            code db.createCollection('users')
+                tr
+                    td
+                        code ALERT TABLE users<br/>
+                        code ADD join_date DATETIME
+                    td
+                        p 在MongoDB中，集合不会强制文档的结构，即：集合中的文档可以拥有不同的结构。
+                            | 如果需要为文档添加字段，可以使用<code>update()</code>方法。
+                        p
+                            code db.users.update(<br/>
+                            code.two {},<br/>
+                            code.two {$set: {join_date: new Date()}},<br/>
+                            code.two {multi: true},<br/>
+                            code )
+                tr
+                    td
+                        code ALERT TABLE users
+                        code DROP COLUMN join_date
+                    td
+                        p 在MongoDB中，集合不会强制文档的结构，即：集合中的文档可以拥有不同的结构。
+                            | 如果需要删除文档字段，可以使用<code>update()</code>方法。
+                        p
+                            code db.users.update(<br/>
+                            code.two {},<br/>
+                            code.two {$unset: {join_date: ''}},<br/>
+                            code.two {multi: true},<br/>
+                            code )
+                tr
+                    td
+                        code CREATE INDEX idx_user_id_asc<br/>
+                        code ON users(user_id)
+                    td
+                        code db.users.ensureIndex({user_id: 1})
+                tr
+                    td
+                        code CREATE INDEX idx_user_id_asc_age_desc<br/>
+                        code ON users(user_id, age DESC)
+                    td
+                        code db.users.ensureIndex({user_id: 1, age: -1})
+                tr
+                    td
+                        code DROP TABLE users
+                    td
+                        code db.users.drop()
+        p
+            strong
+                small 插入数据
+        table.table.table-bordered
+            thead
+                tr
+                    th(width='50%') SQL INSERT
+                    th(width='50%') MongoDB insert()
+            tbody
+                tr
+                    td
+                        code INSERT INTO users(user_id, age, status)<br/>
+                        code VALUES('bcd001', 45, 'A')
+                    td
+                        code db.users.insert({<br/>
+                        code.two user_id: 'bcd001',<br/>
+                        code.two age: 45,<br/>
+                        code.two status: 'A'<br/>
+                        code })
+        p
+            strong
+                small 查询
+        table.table.table-bordered
+            thead
+                tr
+                    th(width='50%') SQL SELECT
+                    th(width='50%') MongoDB find()
+            tbody
+                tr
+                    td
+                        code SELECT * FROM users
+                    td
+                        code db.users.find()
+                tr
+                    td
+                        code SELECT id, user_id, status<br/>
+                        code FROM users
+                    td
+                        code db.user.find(<br/>
+                        code.two {},<br/>
+                        code.two {user_id: 1, status: 1}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT user_id, status<br/>
+                        code FROM users
+                    td
+                        code db.users.find(<br/>
+                        code.two {},<br/>
+                        code.two {_id: 0, user_id: 1, status: 1}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT * <br/>
+                        code FROM users <br/>
+                        code WHERE status = 'A'
+                    td
+                        code db.users.find(<br/>
+                        code.two {status: 'A'}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT user_id, status<br/>
+                        code FROM users<br/>
+                        code WHERE status = 'A'
+                    td
+                        code db.users.find(<br/>
+                        code.two {status: 'A'},<br/>
+                        code.two {_id: 0, user_id: 1, status: 1}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT *<br/>
+                        code FROM users<br/>
+                        code WHERE status != 'A'
+                    td
+                        code db.users.find(<br/>
+                        code.two {status: {$ne: 'A'}}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT * <br/>
+                        code FROM users <br/>
+                        code WHERE status = 'A' AND age = 50
+                    td
+                        code db.users.find(<br/>
+                        code.two {status: 'A', age: 50}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT * <br/>
+                        code FROM users <br/>
+                        code WHERE status = 'A' OR age = 50
+                    td
+                        code db.users.find(<br/>
+                        code.two {$or: [{status: 'A'}, {age: 50}]}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT * <br/>
+                        code FROM users <br/>
+                        code WHERE age > 25
+                    td
+                        code db.users.find(<br/>
+                        code.two {age: {$gt: 25}}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT * <br/>
+                        code FROM users <br/>
+                        code WHERE age < 25
+                    td
+                        code db.users.find(<br/>
+                        code.two {age: {$lt: 25}}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT * <br/>
+                        code FROM users <br/>
+                        code WHERE age > 25 AND age <= 50
+                    td
+                        code db.users.find(<br/>
+                        code.two {age: {$gt: 25, $lte: 50}}<br/>
+                        code )
+                tr
+                    td
+                        code SELECT * <br/>
+                        code FROM users <br/>
+                        code WHERE user_id LIKE '%bc%'
+                    td
+                        code db.users.find(<br/>
+                        code.two {user_id: /bc/}<br/>
+                        code )
+        p
+            strong
+                small 更新
+        table.table.table-bordered
+            thead
+                tr
+                    th(width='50%') SQL UDPATE
+                    th(width='50%') MongoDB update()
+            tbody
+                tr
+                    td
+                        code UPDATE users <br/>
+                        code SET status = 'C' <br/>
+                        code WHERE age > 25
+                    td
+                        code db.users.update(<br/>
+                        code.two {age: {$gt: 25}}, <br/>
+                        code.two {$set: {status: 'C'}}, <br/>
+                        code.two {multi: true}<br/>
+                        code )
+                tr
+                    td
+                        code UPDATE users <br/>
+                        code SET age = age + 3 <br/>
+                        code WHERE status = 'A'
+                    td
+                        code db.users.update(<br/>
+                        code.two {status: 'A'}, <br/>
+                        code.two {$inc: {age: 3}}, <br/>
+                        code.two {multi: true}<br/>
+                        code )
+        p
+            strong
+                small 删除
+        table.table.table-bordered
+            thead
+                tr
+                    th SQL DELETE
+                    th MongoDB remove()
+            tbody
+                tr
+                    td
+                        code DELETE FROM users <br/>
+                        code WHERE status = 'D'
+                    td
+                        code db.users.remove(<br/>
+                        code.two {status: 'D'}<br/>
+                        code )
+                tr
+                    td
+                        code DELETE FROM users
+                    td
+                        code db.users.remove({})

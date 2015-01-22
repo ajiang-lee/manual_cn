@@ -1,0 +1,10 @@
+extends ../../layout
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/model') 数据模型
+            li.active 参考资料

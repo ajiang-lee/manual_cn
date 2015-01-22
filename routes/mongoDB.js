@@ -50,4 +50,44 @@ router.get('/crud/tutorial(/:section)?', function(req, res, next) {
     });
 });
 
+// 第三章：CRUD 》3.4：参考资料
+router.get('/crud/reference(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_03/34_reference', {
+        section : req.params[0]
+    });
+});
+
+// 第四章：数据模型 》目录
+router.get('/model', function(req, res, next) {
+    res.render('mongoDB/chapter_04/index');
+});
+
+// 第四章：数据模型 》4.1：简介
+router.get('/model/introduction(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_04/41_introduction', {
+        section : req.params[0]
+    });
+});
+
+// 第四章：数据模型 》4.2：相关概念
+router.get('/model/concept(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_04/42_concept', {
+        section : req.params[0]
+    });
+});
+
+// 第四章：数据模型 》4.3：示例
+router.get('/model/example(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_04/43_example', {
+        section : req.params[0]
+    });
+});
+
+// 第四章：数据模型 》4.4：参考资料
+router.get('/model/reference(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_04/44_reference', {
+        section : req.params[0]
+    });
+});
+
 module.exports = router;

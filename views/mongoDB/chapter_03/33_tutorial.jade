@@ -34,7 +34,7 @@ block content
             li
                 a(href='#section3311') 3.3.11 创建自增字段
             li
-                a(href='#section3312') 3.3.12 更新数组后，限制数据元素的个数
+                a(href='#section3312') 3.3.12 更新数组后，限制数据元素的数量
         h4#section331 3.3.1 插入文档
         p 在MongoDB中，使用方法<code>db.collection.insert()</code>向集合添加文档。
         strong 插入单个文档
@@ -1081,8 +1081,118 @@ block content
                         code.two _id : 2,<br/>
                         code.two name : "Bob D."<br/>
                         code }
-        p <strong>findAndModify()方法的行为特点<small></small></strong>&emsp;
+        p <strong><small>findAndModify()方法的行为特点</small></strong>&emsp;当方法<code>findAndModify()</code>包含<code>upsert: true</code>选项，
+            | 并且查询字段没有唯一索引时，方法<code>findAndModify()</code>可能会多次插入同一个文档。例如，如果多个客户端同时调用该方法，
+            | 并且在所有客户端执行更新操作之前完成查询操作，此时，多个客户端会将同一个文档多次插入到集合中。
+        p 在上文的<code>counters</code>集合的示例中，查询字段为<code>_id</code>，该字段关联一个唯一性索引。如下所示，
+            | 如果方法<code>findAndModify()</code>包含<code>upsert: true</code>选项时：
+        p
+            code function getNextSequence(name) {<br/>
+            code.two var ret = db.counters.findAndModify(<br/>
+            code.third {<br/>
+            code.fourth query: {_id: name},<br/>
+            code.fourth update: {$inc: {seq: 1}},<br/>
+            code.fourth new: true,<br/>
+            code.fourth upsert: true<br/>
+            code.third }<br/>
+            code.two );<br/>
+            code.two return ret.seq;<br/>
+            code }
+        p 如果多个客户端同时使用相同的实参调用该方法，则可能出现如下情况之一：
+            ul
+                li 只有一个调用可以成功插入一个新文档
+                li 零个或多个调用更新新插入的文档
+                li 零个或多个调用因为插入重复主键而失败
+        p 如果因为重复主键错误而失败，可以重新调用方法。
         p <strong><small>乐观循环</small></strong>
-
+        p 在该模式中，<em>乐观循环</em>为<code>_id</code>字段计算一个值，并尝试使用计算得到的值将文档插入集合。
+            | 如果插入成功，循环结束；否则，循环会尝试另外一个<code>_id</code>字段的值，直到插入成功为止。
+        ol
+            li 创建一个名为<code>insertDocument()</code>的方法，该方法执行循环尝试插入操作。该方法封装了MongoDB的<code>insert()</code>方法，
+                | 并且接受参数<code>doc、targetCollection</code>。
+                p
+                    code function insertDocument(doc, targetCollection) {<br/>
+                    code.two while (1) {<br/>
+                    code.third var cursor = targetCollection.find( {}, { _id: 1 } ).sort( { _id: -1 } ).limit(1);<br/>
+                    code.third var seq = cursor.hasNext() ? cursor.next()._id + 1 : 1;<br/>
+                    code.third doc._id = seq;<br/>
+                    code.third var results = targetCollection.insert(doc);<br/>
+                    code.third if( results.hasWriteError() ) {<br/>
+                    code.fourth if( results.writeError.code == 11000 /* dup key */ )<br/>
+                    code.five continue;<br/>
+                    code.fourth else<br/>
+                    code.five print( "unexpected error inserting data: " + tojson( results ) );<br/>
+                    code.third }<br/>
+                    code.third break;<br/>
+                    code.two }<br/>
+                    code }
+                p 方法中的<code>while(1)</code>循环执行以下动作：
+                    ul
+                        li 查询集合<code>targetCollection</code>中最大<code>_id</code>的文档
+                        li 根据查询结果决定<code>_id</code>字段的下一个序列值
+                        li 将得到的<code>_id</code>值赋值个参数<code>doc</code>的<code>_id</code>
+                        li 将文档<code>doc</code>插入到集合<code>targetCollection</code>
+                        li 如果插入遇到重复主键异常，则开始下一次循环；否则，如果遇到其他异常或插入成功，则退出循环。
+            li 使用<code>insertDocument</code>方法插入文档：
+                p
+                    code var myCollection = db.users2;<br/>
+                    code insertDocument(<br/>
+                    code.two {<br/>
+                    code.three name: "Grace H."<br/>
+                    code.two },<br/>
+                    code.two myCollection<br/>
+                    code );<br/>
+                    code insertDocument(<br/>
+                    code.two {<br/>
+                    code.three name: "Ted R."<br/>
+                    code.two },<br/>
+                    code.two myCollection<br/>
+                    code )
+                p 上述语句的查询结果为：
+                p
+                    code {_id: 1, name: "Grace H."}
+                    code {_id : 2, "name" : "Ted R."}
+        p 对于大量数据的插入，如果使用<em>乐观循环</em>机制，则可能存在大量的循环，效率很低。
+        h4#section3312 3.3.12 更新数组后，限制数据中元素的数量
+        p 版本2.4中引入的新特性。
+        strong 简介
+        p 考虑以下场景：应用程序存在许多用户，处于测试的需要，用户向某个集合的某个文档的某个字段提交了很多分数，但是，应用程序只需要跟踪该字段的前3个分数。
+        p 该方法结合操作符<code>$push</code>和<code>$each、$sort、$slice</code>选项达到固定数组长度的限制。
+        .alert.alert-danger 为了使用<code>$sort</code>，必须确保数组元素是文档类型。
+        strong 实现方法
+        p 假设存在集合<code>students</code>：
+        p
+            code {<br/>
+            code.two _id: 1,<br/>
+            code.two scores:<br/>
+            code.three [<br/>
+            code.four { attempt: 1, score: 10 },<br/>
+            code.four { attempt: 2 , score:8 }<br/>
+            code.three ]<br/>
+            code }
+        p 如下的<code>update()</code>方法使用了如下操作符：
+            ul
+                li <code>$each</code>向数组添加两个新元素
+                li <code>$sort</code>对数组元素进行排序
+                li <code>$slice</code>截取数组的前三个元素
+            p
+                code db.students.update(<br/>
+                code.two {_id: 1},<br/>
+                code.two {$push: {scores:{<br/>
+                code.three $each: [{attempt: 3, score: 7}, {attempt: 4, socre: 4}],<br/>
+                code.three $sort: {score: 1}<br/>
+                code.three $slice: 3<br/>
+                code.two }}},<br/>
+                code);
+            p 上述语句的结果为：
+            p
+                code {<br/>
+                code.two '_id': 1,<br/>
+                code.two 'scores': [<br/>
+                code.three { "attempt" : 3, "score" : 7 },<br/>
+                code.three { "attempt" : 2, "score" : 8 },<br/>
+                code.three { "attempt" : 1, "score" : 10 }<br/>
+                code.two ]<br/>
+                code }
 
 
