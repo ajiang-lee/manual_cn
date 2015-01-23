@@ -8,3 +8,152 @@ block content
             li
                 a(href='/mongoDB/model') 数据模型
             li.active 相关概念
+        h3 4.2&emsp;相关概念
+        p 在为一个MongoDB数据库的集合设计数据模型时，可以有不同的选择，每种选择都有自身的优点和缺点。
+            | 本节内容在如何选择数据模型方面给出了指导性意见，主要包含以下内容：
+            ul
+                li
+                    a(href='#section421') 4.2.1&emsp;数据模型设计
+                li
+                    a(href='#section422') 4.2.2&emsp;数据实际使用的考虑和数据模型
+                li
+                    a(href='#section423') 4.2.3&emsp;GridFS
+        h4#section421 4.2.1&emsp;数据模型设计
+        p 高效的数据模型可以最大程度的满足应用程序的需求。在设计数据模型时，关键点是在使用<code>嵌套文档</code>和<code>关联</code>之间做出选择。
+        strong 嵌套文档
+        p 在MongoDB中，可以使用嵌套文档来体现关联关系。嵌套文档模式违反了数据库的设计范式，但是充分利用了MongoDB数据库丰富的数据类型。
+            | 考虑下图：
+        p.text-center
+            img(src='/images/mongoDB/chapter_04/4.2.png')
+            br
+            small 图4.3&emsp;使用嵌套文档体现关联关系
+        p 嵌套文档数据模型允许应用程序在单个文档中存储关联关系，进而使应用程序通过较少的查询、更新语句完成常用操作。
+        p 通常来说，当出现以下情况时考虑使用嵌套文档模式：
+            ul
+                li 实体间存在‘包含关系’
+                li 实体间存在一对多关系，并且关系中多的一方通常是跟随关系中一的一方被查看的（即：应用程序不会单独查看关系中多的一方的数据）。
+        p 通常来讲，嵌套文档允许应用程序在单个操作中获取关联数据，这样可以提供高效的读操作。并且，嵌套文档允许应用程序原子性的更改嵌套关系的双方。
+        p 但是，随着文档大小的增长，嵌套文档模式可能会存在问题。首先，空间的重分配会导致磁盘碎片，影响读操作的性能；其次，
+            | MongoDB中的文档的大小必须小于<code>maximum BSON document size(16M)</code>。对于二进制块，考虑使用<code>GridFS</code>。
+        p 为了获取嵌套文档，可以在语句中使用<code>点符号（.）</code>。
+        strong 符合范式的数据模型
+        p 符合范式的关联关系使用如下方式体现：
+        p.text-center
+            img(src='/images/mongoDB/chapter_04/4.1.png')
+            br
+            small 图4.4：通过关联在文档之间建立关系。文档<code>contact、access</code>中均持有到文档<code>user</code>的关联
+        p 通常来讲，当出现以下情况时，考虑使用符合范式的关联关系：
+            ul
+                li 当使用嵌套文档时不能明显的提高读操作性能，但是导致明显数据重复。
+                li 表达复杂的多对多关系时
+                li 对海量的有层级关系的数据建模
+        p 相比嵌套文档，关联的灵活性更高。但是，应用程序必须使用更多的查询语句来获取关联数据。即：
+            | 符合范式的关联关系需要应用程序与数据库之间更多的交互。
+        h4#section422 4.2.2&emsp;数据实际使用的考虑和数据模型
+        p 为MongoDB数据库建模时，不仅需要考虑数据本身，还需要考虑MongoDB数据库的特性。例如，
+            | 不同的数据模型可以使应用程序更加高效的使用查询，增加插入、更新操作的吞吐量，或者，将操作高效的分发到分片群集。
+        p 这些因素都是在实际使用数据时产生的，虽然和应用程序本身无关，但是仍然会对依赖的MongoDB数据库产生影响。
+            | 在对数据进行建模时，除了需要分析应用程序所有的读操作和写操作，还需要考虑以下因素：
+        strong 文档大小的增长
+        p 一些针对文档的更新操作可能引起文档本身大小的增加，包括向数组添加元素和向文档添加新字段。如果文档大小超过已分配空间大小，
+            | 则MongoDB会为该文档重新分配磁盘空间。重新分配空间的更新操作比原地更新操作更加耗时，并且可能引起磁盘碎片，降低数据库的效率。
+            | 虽然MongoDB在为文档分配空间时会自动分配冗余空间供更新操作使用，以避免更新操作引起的空间重新分配，但是在进行模型设计时，
+            | 仍然需要考虑文档大小增长对数据库的影响。
+        p 假设应用程序的更新操作引起文档大小的增长，可能引起空间重分配操作，此时，应该考虑重新设计数据模型，放弃使用嵌套文档模式的关联关系，
+            | 尽量使用符合范式的关联关系设计。
+        p 在为文档分配空间时，MongoDB会自适应的为文档分配冗余空间，但是，考虑到应用程序的具体更新操作，可能需要制定预分配策略以避免空间重分配的发生。
+        strong 原子性
+        p 在MongoDB数据库中，只有针对单文档的操作是原子性的，写操作不可能原子性的改变多个文档。一个更新集合中多个文档的操作，实际上每次只能更新单个文档。
+            | 确保关联关系的数据存储在单个文档中，这样可以执行原子性操作。如果应用程序允许针对多个数据的操作是非原子性的，则可以将数据分散存储在多个文档中。
+        p 对于使用嵌套文档模式的关联关系，可以原子性的修改关联数据；对于使用符合范式的关联关系，如果需要修改关联数据，则需要额外的语句进行，
+            | 不能原子性的进行。
+        strong 分片
+        p MongoDB通过使用<em>分片</em>实现水平扩展。分片集群支持海量数据的存储，以及高吞吐量的操作。分片可以将一个集合在数据库中进行分片，
+            | 将集合文档分散到多个<code>mongod</code>实例或分片中。
+        p 为了分散一个分片集合的数据和数据流量，MongoDB使用了<code>分片键（shard key）</code>。选择合适的分片键，
+            | 可以明显的影响数据库的性能，并且可以启用或阻止查询隔离，以及增加写操作的性能。所以，在选择分片键时，需要集合具体情况仔细考虑。
+        strong 索引
+        p 使用索引可以提高常用查询语句的性能。通常情况下，需要在经常查询的字段和需要排序的字段上建立索引。MongoDB自动为文档的<code>_id</code>建立唯一索引。
+        p 在创建索引之前，需要考虑到索引具有以下行为特点：
+            ul
+                li 每个索引至少需要8KB的空间
+                li 索引对于文档的写操作有负面影响。如果一个集合存在高频率的写操作（较读操作而言），建立索引将是十分昂贵的，因为每次写操作都需要更新索引。
+                li 通常来讲，如果一个集合存在高频率的读操作（较写操作而言），读操作将从索引中获益。索引不会影响读取未索引字段的读操作。
+                li 当索引是活动时，索引需要消耗磁盘空间和内存空间。需要时刻监控索引的磁盘和内存的使用情况。
+        strong 集合的数量
+        p 在特定场景中，可能会选择将相关信息分散存储在多个集合中，而不是存储在单个集合中。
+        p 考虑一个简单的例子：集合<code>logs</code>存储了不同应用程序不同环境的日志信息。<code>logs</code>集合中包含以下结构的文档：
+        p
+            code { log: "dev", ts: ..., info: ... }<br/>
+            code { log: "debug", ts: ..., info: ...}
+        p 如果集合中文档的数量较少，可以通过日志类型将日志信息集中在一个集合中。对于日志信息，也可以考虑按照日志的类型分别存储在不同的集合中，
+            | 比如<code>logs_dev、logs_debug</code>，其中，<code>logs_dev</code>集合维护开发环境的日志信息。
+        p 通常来讲，拥有大量的集合并不会对性能造成负面影响，反而会提高数据库的性能。不同的集合对于高吞吐量的批处理是十分重要的。
+        p 当使用大量的集合时，需要考虑以下问题：
+            ul
+                li 每个集合都会消耗固定的空间（集合本身的元信息需要占用磁盘空间）
+                li 每个索引至少需要8KB的空间
+                li 对于每个数据库，单个命名空间文件（即：database.ns）存储了该数据库相关的元信息，每个索引和集合在命名空间文件中均有对应的记录条目。
+                    | MongoDB对于命名空间文件的大小是有限制的。
+                li MongoDB对于命名空间文件的个数是有限制的。可以通过以下语句获取当前MongoDB数据库支持的命名空间文件的个数：
+                    p
+                        code db.system.namespaces.count()
+                    p 命名空间文件的个数取决于命名空间文件的大小，默认情况下，命名空间文件的大小为<code>16M</code>。
+                    p 为了更改新的命名空间文件的大小，可以在启动MongoDB时添加选项<code>--nssize new size MB</code>。
+                        | 对于已存在的数据库，在使用<code>--nssize</code>选项启动MongoDB后，使用命令<code>db.repairDatabase()</code>。
+        strong 数据的生命周期
+        p 设计数据模型时，需要考虑到数据的生命周期。
+        p 具有<code>存活时间（Time To Live或者TTL）</code>特性的集合会在特定时间后将文档过期。如果在应用程序中，一些数据需要在经过一段时间后失效，
+            | 可以考虑使用具有存活时间特性的集合。
+        p 另外，如果应用程序只需要使用最近插入的文档，可以考虑使用<code>Capped Collection</code>，Capped Collection提供先进先出的特性。
+        h4#section423 4.2.3&emsp;GridFS
+        p <em>GridFS</em>是一个规范，该规范规定了如何存储、获取超过BSON文档大小限制（16M）的文件。
+        p GridFS不会将单个文件保存在单个文档中，而是将一个文件分成不同的块（chunk），然后将这些块分别存储在各自的文档中。GridFS块的默认大小是255K。
+            | GridFS使用两个集合存储文件。一个集合存储文件块，一个集合存储文件的元信息。
+        p 当需要查询使用GridFS存储的一个文件时，驱动程序或客户端会根据需要重组文件块。可以按范围查询文件，也可以获取文件的任意文件块，
+            | 这样允许用户跳到一个音视频文件的中间部分。
+        p GridFS不单单用于存储超过16M的文件，对于不用将整个文件加载到内存就能访问文件的情况，同样可以使用GridFS。
+        p 版本2.4.10发生了改变：默认文件块大小从256K变为255K。
+        strong 使用GridFS
+        p 可以通过以下的任意方法实现使用GridFS存储、获取文件：
+            ul
+                li MongoDB的驱动，具体使用细节参考对应的驱动文档
+                li 在<code>mongo</code> shell中使用<code>mongofiles</code>命令行工具
+        strong GridFS使用的集合
+        p GridFS将文件存储在两个集合中：
+            ul
+                li <code>chunks</code>集合用于存储文件的二进制块
+                li <code>files</code>集合用于存储文件的元信息
+        p GridFS将集合置于一个bucket中。GridFS默认使用<code>fs</code>前缀：
+        p
+            code fs.files<br/>
+            code fs.chunks
+        p 可以为bucket指定不同的名称，在一个数据库中可以创建多个bucket。
+        p 集合<code>chunks</code>中的每个文档代表文件的不同二进制块。每个块通过<code>_id</code>字段的值唯一标识。
+        strong GridFS的索引
+        p GridFS在集合<code>chunks</code>的<code>files_id、n</code>字段上创建一个唯一复合索引。
+            | <code>files_id</code>字段包含了当前二进制块父文档的<code>_id</code>，<code>n</code>字段代表二进制块的顺序。
+            | GridFS会为所有的块编码，编码从0开始。
+        p 由于上述索引的存在，可以高效的执行以下语句：
+        p
+            code cursor = db.fs.chunks.find({files_id: myFileId}).sort({n: 1});
+        p 请参考具体的驱动程序的文档查看上述索引是否存在，如果不存在，使用如下语句创建该索引：
+        p
+            code db.fs.chunks.ensureIndex({files_id: 1, n: 1}, {unique: true});
+        strong 示例程序
+        p 以下是一个Java使用GridFS的示例程序，只是为了演示使用：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code // returns default GridFS bucket (i.e. "fs" collection)<br/>
+                code GridFS myFS = new GridFS(myDatabase);<br/>
+                code // saves the file to "fs" GridFS bucket<br/>
+                code myFS.createFile(new File("/tmp/largething.mpg"));<br/><br/>
+                p Optionally, interfaces may support other additional GridFS buckets as in the following example:
+                code // returns GridFS bucket named "contracts"<br/>
+                code GridFS myContracts = new GridFS(myDatabase, "contracts");<br/>
+                code // retrieve GridFS object "smithco"<br/>
+                code GridFSDBFile file = myContracts.findOne("smithco");<br/>
+                code // saves the GridFS file to the file system<br/>
+                code file.writeTo(new File("/tmp/smithco.pdf"));<br/>
+

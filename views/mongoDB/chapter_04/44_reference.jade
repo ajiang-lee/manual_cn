@@ -8,3 +8,131 @@ block content
             li
                 a(href='/mongoDB/model') 数据模型
             li.active 参考资料
+        h3 4.4&emsp;参考资料
+        p 本节内容主要包含以下内容：
+            ul
+                li
+                    a(href='#section441') 4.4.1&emsp;文档
+                li
+                    a(href='#section442') 4.4.2&emsp;数据库关联关系
+                li
+                    a(href='#section443') 4.4.3&emsp;GridFS参考
+                li
+                    a(href='#section444') 4.4.4&emsp;ObjectId
+                li
+                    a(href='#section445') 4.4.5&emsp;BSON类型
+        h4#section441 4.4.1&emsp;文档
+        p MongoDB将所有数据存储在文档中，文档是一个与JSON格式类似的数据结构，由键值对组成：
+        p
+            code {'item': 'pencil', 'qty': 500, 'type': 'no.2'}
+        p MongoDB中，用户可以访问的大部分数据结构都是文档，包括：
+            ul
+                li 所有的数据库记录
+                li 查询选择符，用于指定查询语句、更新语句、删除语句的过滤条件
+                li 更新定义，用于指定需要更新文档的哪些字段
+                li 索引定义，用于指定在哪些字段上建立索引
+                li MongoDB的报告、配置输出，比如<code>serverStatus</code>的输出。
+        strong 文档格式
+        p MongoDB以序列化的<em>BSON</em>格式在磁盘上存储文档。BSON是JSON的二进制表示方法，拥有比JSON更丰富的数据类型。
+        p <code>mongo</code> JavaScript shell和<code>MongoDB language drivers</code>将BSON转化为对应语言的文档表示方式。
+        strong 文档结构
+        p MongoDB的文档有键值对组成，拥有以下的结构：
+        p
+            code {<br/>
+            code.two field1: value1,<br/>
+            code.two field2: value2,<br/>
+            code.two ...<br/>
+            code.two fieldN: valueN<br/>
+            code }
+        p 字段的值可以是BSON的任意数据类型，包括嵌套文档、数组、嵌套文档数组。下例展示了BSON的不同数据类型：
+        p
+            code var mydoc = {<br/>
+            code.two _id: ObjectId("5099803df3f4948bd2f98391"),<br/>
+            code.two name: { first: "Alan", last: "Turing" },<br/>
+            code.two birth: new Date('Jun 23, 1912'),<br/>
+            code.two death: new Date('Jun 07, 1954'),<br/>
+            code.two contribs: [ "Turing machine", "Turing test", "Turingery" ],<br/>
+            code.two views : NumberLong(1250000)<br/>
+            code }
+            p 上例文档中的各个字段的数据类型如下：
+                ul
+                    li <code>_id</code>为ObjectId
+                    li <code>name</code>为嵌套文档
+                    li <code>birth、death</code>为日期类型
+                    li <code>contribs</code>为数组
+                    li <code>views</code>为NumberLong
+        strong 字段名称
+        p 字段名称必须是字符串。
+        p 文档的字段名存在以下限制：
+            ul
+                li <code>_id</code>字段是保留字段，作为文档的主键使用。字段值在集合中是唯一的，并且是不可改变的，可以是除数组之外的任意数据类型。
+                li 字段名不能以<code>$</code>符号开始
+                li 字段名不能包含<code>.</code>符号
+                li 字段名不能包含<code>null</code>字符
+        p BSON文档的字段名可以重复。但是，大多数的驱动程序使用哈希表表示文档，导致文档的字段名不能重复。如果确实需要使用重复的字段名，
+            | 请参考具体的驱动程序的说明文档。
+        p 一些由MongoDB内置进程创建的文档可能包含重复字段，但是对于已存在的用户创建的文档，不会存在该情况。
+        strong 字段值的限制
+        p 对于存在索引的集合，索引字段存在一个<code>Maxinum Index Key Length</code>的限制。
+        strong 文档的限制
+        p 文档拥有以下特性：
+        p
+            strong
+                small 文档大小的限制
+        p BSON文档的最大大小为16M。
+        p 最大文档大小确保单个文档不会使用超过16M的内容，在传输过程中，不会超过带宽。如果需要存储超过16M的文档，可以使用MongoDB提供的GridFS API。
+        p
+            strong
+                small 文档字段的顺序
+        p MongoDB会保存字段写入的顺序，除了以下例外：
+            ul
+                li 字段<code>_id</code>永远是文档的第一个字段
+                li 包含<code>renaming</code>选项的更新可能会导致文档字段的重新排序
+        p 版本2.6发生改变：从版本2.6开始，MongoDB会积极的保持字段顺序，在版本2.6之前则不会。
+        strong <code>_id</code>字段
+        p 字段<code>_id</code>拥有如下特性和限制：
+            ul
+                li 默认情况下，在创建一个集合时，MongoDB默认为<code>_id</code>字段创建一个唯一索引
+                li <code>_id</code>字段永远是文档的第一个字段。如果服务器接收到一个文档，该文档的<code>_id</code>字段不是第一个字段，
+                    | 则服务器会将<code>_id</code>字段移动到文档的第一个字段。
+                li <code>_id</code>字段可以包含除数组外的任意BSON数据类型
+                    .alert.alert-danger 为了确保能够使用复制特性，不要为<code>_id</code>字段指定正则表达式的数据类型。
+        p 可以为<code>_id</code>字段指定如下的值：
+            ul
+                li 使用ObjectId
+                li 如果可能使用一个自然唯一标识符，这样可以节省存储空间，也可以避免一个唯一索引的使用
+                li 创建一个自增序列
+                li 在应用程序中生成一个UUID。为了在集合中以及索引中更高效的存储UUID，请以BSON的BinData数据类型存储UUID
+                    p 如果满足以下条件，BinData类型的索引字段的存储效率更高：
+                        ul
+                            li the binary subtype value is in the range of 0-7 or 128-135, and
+                            li the length of the byte array is: 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, or 32
+                li 使用驱动程序提供的工具生成UUID。具体使用方法请参考具体的说明文档。
+        .alert.alert-danger 大部分驱动程序会自动为不包含<code>_id</code>字段的文档生成<code>_id</code>字段，并为该字段生成一个唯一的ObjectId。
+            | 如果驱动程序没有生成<code>_id</code>字段，<code>mongod</code>实例会自动添加<code>_id</code>字段，并生成唯一的ObjectId。
+        strong 点符号（.）
+        p MongoDB使用点符号访问数组元素和嵌套文档的字段。
+        p 获取数组元素（下标从0开始）时，将数组名、点符号、下标数字三者结合在一起，并使用引号包围，如下：
+        p
+            code 'arrayName.index'
+        p 获取嵌套文档字段时，将嵌套文档名、点符号、嵌套文档字段名三者结合在一起，并使用引号包围，如下：
+        p
+            code 'subdocument.field'
+        h4#section442 4.4.2&emsp;数据库关联关系
+        p MongoDB不支持关联查询。在MongoDB中，数据可能是不符合范式的，即：为了避免关联查询，将关联数据存储在单个文档中。
+            | 但是，在某些场景中，必须将关联数据分别存储在不同的文档中，甚至是不同的集合、不同的数据库中。
+        p 可以使用如下两种方法实现文档的关联关系：
+            ul
+                li <strong>手工设置关联关系</strong>&emsp;在应用程序中为被关联文档生成<code>_id</code>字段的值，然后将该值保存在关联文档中。
+                    | 在应用程序中，可以通过额外的查询获取被关联的文档。该种模式比较简单，并且针对大多数场景都是比较合适的。
+                li <strong>DBRefs</strong>&emsp;DBRefs指的是在一个文档中存储关联文档的<code>_id</code>字段、集合名称，
+                    | 以及可选的所属数据库名称。通过这些信息，可以很容易的定位到关联数据。
+                    p 为了解析DBRefs，应用程序必须发送额外的查询语句来获得关联数据。许多驱动程序提供了辅助方法来生成这个额外的查询语句，
+                        | 但是并不会将DBRefs直接解析为文档。
+                    p DBRefs为组织、表达文档间的关联关系提供了一种通用方法。即便文档是位于不同的文档、不同的集合、不同的数据库。
+        p 除非有充分的理由需要用到DBRefs，否则，优先考虑使用手工设置关联关系
+        strong 手工设置关联关系
+        p
+            strong
+                small 背景
+        p
