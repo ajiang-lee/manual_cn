@@ -135,4 +135,327 @@ block content
         p
             strong
                 small 背景
+        p 手工设置设置关联关系就是在一个文档中存储被关联文档的<code>_id</code>字段，应用程序可以通过该<code>_id</code>字段，
+            | 使用额外的查询获取关联文档数据。
         p
+            strong
+                small 处理过程
+        p 考虑下例代码，首先为文档<code>places</code>生成一个ObjectId，为了标识该文档属于文档<code>people</code>，
+            | 将该字段作为关联字段存储在文档<code>people</code>的<code>places_id</code>字段。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                code original_id = ObjectId();<br/><br/>
+                code db.places.insert({<br/>
+                code.two '_id': original_id,<br/>
+                code.two 'name': 'Broadway Center',<br/>
+                code.two 'url': 'bc.example.net'<br/>
+                code });<br/></br>
+                code db.people.insert({<br/>
+                code.two 'name': 'Erin',<br/>
+                code.two 'places_id': original_id,<br/>
+                code.two 'url': 'bc.example.net/Erin'<br/>
+                code });
+                p 执行上述代码后，如果一个查询获取了集合<code>people</code>中的文档，如果需要获取关联的地址信息，
+                    | 需要使用文档中的<code>places_id</code>字段的值通过第二个查询语句从集合<code>places</code>中获取。
+        p
+            strong
+                small 使用
+        p 对于所有需要建立关联关系的文档而言，都可以使用手工设置关联关系模式。该方法简单有效，并且应用程序可以按需获取关联数据。
+        p 对于手工设置关联关系模式，唯一的限制就是该关系没有记录关联文档所属的集合、所属的数据库。如果某个集合的文档存在到多个集合文档的关联，
+            | 则可以考虑使用DBRefs。
+        strong DBRefs
+        p
+            strong
+                small 背景
+        p DBRefs只是一个标识文档的约定，并不是特定的设置关联关系的模式。DBRefs包含集合名字、文档的_id，甚至是数据库名称。
+        p
+            strong
+                small 格式
+        p DBRefs拥有以下字段：
+            ul
+                li <strong>$ref</strong>&emsp;关联文档所属集合的名字
+                li <strong>$id</strong>&emsp;关联文档的<code>_id</code>字段的值
+                li <strong>$db</strong>&emsp;可选字段；关联文档所属的数据库名字；有些驱动程序不支持该字段。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p DBRefs包含如下结构：
+                p
+                    code {'$ref': value, '$id': value, '$db': value}
+                p 某集合的文档在字段<code>creator</code>存储了一个DBRefs：
+                p
+                    code {<br/>
+                    code.two "_id" : ObjectId("5126bbf64aed4daf9e2ab771"),<br/>
+                    code.two // .. application fields<br/>
+                    code.two "creator" : {<br/>
+                    code.third "$ref" : "creators",<br/>
+                    code.third "$id" : ObjectId("5126bc054aed4daf9e2ab772"),<br/>
+                    code.third "$db" : "users"<br/>
+                    code.two }<br/>
+                    code }
+                p 上例中的DBRefs指向<code>users</code>数据库中的<code>creators</code>集合中<code>_id</code>字段值为<code>ObjectId("5126bc054aed4daf9e2ab772")</code>的文档。
+                .alert.alert-danger DBRefs的字段顺序是很重要的，必须使用上述顺序的DBRefs。
+        p
+            strong
+                small 各语言的支持情况
+        p
+            ul
+                li <strong>C++</strong>&emsp;C++驱动程序不支持DBRefs。
+                li <strong>C#</strong>&emsp;C#驱动程序使用<code>MongoDBRef</code>类支持DBRefs，并提供<code>FetchDBRef</code>方法用于获取DBRefs对象。
+                li <strong>Java</strong>&emsp;Java使用<code>DBRef</code>类支持DBRefs。
+                li <strong>JavaScript</strong>&emsp;<code>mongo</code> shell中的JavaScript接口支持DBRefs。
+                li <strong>Perl</strong>&emsp;Perl的驱动程序不支持DBRefs。
+                li <strong>PHP</strong>&emsp;PHP驱动程序支持DBRefs，使用类<code>MongoBDRef</code>类，并支持<code>$db</code>选项。
+                li <strong>Python</strong>&emsp;Python驱动程序提供了类<code>DBRef</code>和方法<code>dereference</code>支持DBRefs。
+                li <strong>Ruby</strong>&emsp;Ruby驱动程序提供了类<code>DBRef</code>和方法<code>deference</code>支持DBRefs。
+        p
+            strong
+                small 使用
+        p 在大多数情况下，应该使用<code>手工设置关联关系</code>来设置两个文档或多个文档的关联关系。但是，针对具体的使用情况，
+            | 可以考虑使用DBRefs。
+        h4#section443 4.4.3&emsp;GridFS参考
+        p GridFS将文件存储在两个集合中：
+            ul
+                li <strong>chunks</strong>&emsp;用于存储二进制块。
+                li <strong>files</strong>&emsp;用于存储文件元信息。
+        p GridFS将集合集中于一个bucket中。GridFS默认使用<code>fs</code>前缀：
+        p
+            code fs.files<br/>
+            code fs.chunks
+        p 可以为bucket指定不同的名称，在一个数据库中可以创建多个bucket。
+        strong 集合<code>chunks</code>
+        p 集合<code>chunks</code>中的每个文档代表在GridFS中存储文件的一个二进制块。文档具有如下结构：
+        p
+            code {<br/>
+            code.two '_id': ObjectId,<br/>
+            code.two 'files_id': ObjectId,<br/>
+            code.two 'n': num,<br/>
+            code.two 'data': binary<br/>
+            code }
+        p 文档中各个字段的解释如下：
+            ul
+                li <strong>_id</strong>&emsp;集合中该二进制块的唯一标识
+                li <strong>files_id</strong>&emsp;标识该二进制块所属的文件，即：集合<code>files</code>中文件的<code>_id</code>字段的值
+                li <strong>n</strong>&emsp;二进制块的编号。GridFS从下标0开始编号
+                li <strong>data</strong>&emsp;块的BSON二进制类型数据
+        p 集合<code>chunks</code>在字段<code>files_id、n</code>字段上存在一个唯一复合索引，如果不存在，需要自己手工创建索引。
+        strong 集合<code>files</code>
+        p 集合<code>files</code>中的每个文档代表GridFS中存储的一个文件。文档具有以下结构：
+        p
+            code {<br/>
+            code.two '_id': ObjectId,<br/>
+            code.two 'length': num,<br/>
+            code.two 'chunkSize': num,<br/>
+            code.two 'uploadDate': timestamp,<br/>
+            code.two 'md5': hash,<br/>
+            code.two 'filename': string,<br/>
+            code.two 'contentType': string,<br/>
+            code.two 'aliases': string array,<br/>
+            code.two 'metadata': dataObject<br/>
+            code }
+        p 集合<code>files</code>中的文档可以包含上述的所有或部分字段，应用程序可以根据需要添加自有字段，字段解析如下：
+            ul
+                li <strong>_id</strong>&emsp;文档的唯一标识。
+                li <strong>length</strong>&emsp;文档的大小，以字节为单位。
+                li <strong>chunksize</strong>&emsp;每个二进制块的大小。GridFS以该字段的值将文件进行分块，默认大小为255K。
+                li <strong>uploadDate</strong>&emsp;文件被保存的时间。
+                li <strong>md5</strong>&emsp;命令<code>filemd5</code>返回的MD5校验码。
+                li <strong>filename</strong>&emsp;可选字段；文件名称
+                li <strong>contentType</strong>&emsp;可选字段；文件的MIME类型
+                li <strong>aliases</strong>&emsp;可选字段；文件的别名
+                li <strong>metadata</strong>&emsp;可选字段；存储的附加信息
+        h4#section444 4.4.4&emsp;ObjectId
+        strong 简介
+        p <em>ObjectId</em>是一个12字节的BSON数据类型，由以下数据组成：
+            ul
+                li 4字节的日期数据，从Unix元年开始的秒数
+                li 3字节的机器标识符
+                li 2字节的进程编号
+                li 3字节的计数器，从一个随机数开始
+        p 在MongoDB中，集合中的文档需要一个唯一的<code>_id</code>字段作为主键标识。由于ObjectId较小，重复概率极小，并且能够快速的生成，
+            | 所以如果文档不包含<code>_id</code>字段则MongoDB默认使用ObjectId作为<code>_id</code>字段的值。
+            | MongoDB的客户端应该为文档的<code>_id</code>字段生成唯一的ObjectId值，如果客户端提交的文档不包含<code>_id</code>字段，
+            | 则<code>mongod</code>实例会为文档的<code>_id</code>字段生成ObjectId。
+        p 字段<code>_id</code>使用ObjectId还有以下优点：
+            ul
+                li 在<code>mongo</code> shell中，可以通过方法<code>getTimestamp()</code>获得ObjectId的创建时间
+                li 字段<code>_id</code>的排序结果基本上等于按照时间顺序排序
+                    .alert.alert-danger 按照ObjectId排序和按照创建时间排序的关系是：ObjectId在一秒内的顺序并不严格。
+                        | 如果多个系统，或者一个系统的多个进程或线程在同一秒内生成ObjectId，则ObjectId的值并不能准确的反应生成时间。
+                        | 客户端的始终偏移也可能导致上述情况，因为ObjectId是由客户端生成，而不是由<code>mongod</code>实例生成。
+        strong ObjectId()
+        p 在<code>mongo</code> shell中可以通过包装类<code>ObjectId()</code>生成ObjectId，同时提供了如下的属性和方法：
+            ul
+                li <strong>str</strong>&emsp;返回对象的十六进制字表示的符串
+                li <strong>getTimestamp()</strong>&emsp;返回对象的创建时间（Date类型）
+                li <strong>toString()</strong>&emsp;返回对象的JavaScript形式的字符串（即：ObjectId(...)）
+                li <strong>valueOf()</strong>&emsp;返回对象的十六进制字表示的符串，和<code>str</code>相同
+        strong 示例
+        p
+            strong
+                small 生成ObjectId
+        p 可以使用不带参数的方法<code>ObjectId()</code>生成ObjectId：
+        p
+            code var x = ObjectId();
+        p 上述语句中x的值为：
+        p
+            code ObjectId("507f1f77bcf86cd799439011")
+        p 如果需要为指定十六进制字符串生成ObjectId，可以将十六进制字符串作为参数传递给ObjectId()：
+        p
+            code var y = ObjectId("507f191e810c19729de860ea")
+        p 上述语句中y的值为：
+        p
+            code ObjectId("507f191e810c19729de860ea")
+        p
+            strong
+                small 将ObjectId转换为Timestamp
+        p 可以使用方法<code>getTimestamp()</code>获得ObjectId的创建时间，如下：
+        p
+            code ObjectId("507f191e810c19729de860ea").getTimestamp()
+        p 上述方法的返回结果为：
+        p
+            code ISODate("2012-10-17T20:46:22Z")
+        p
+            strong
+                small 将ObjectId转化为字符串
+        p 可以使用ObjectId的<code>str</code>属性、<code>valueOf()、toString()</code>方法获取ObjectId的字符串表示。
+        p
+            strong
+                small 实际测试代码
+        p.text-center
+            img(src='/images/mongoDB/chapter_04/local_001.png')
+        h4#section445 4.4.5&emsp;BSON类型
+        p BSON是一个二进制序列化格式，在MongoDB中用于存储文档数据，并且可以用于远程过程调用。关于BSON的定义可以参考<a href='http://bsonspec.org' target='_blank'>bsonspec.org</a>。
+        p BSON支持以下数据类型。每种数据类型都有一个对应的数字标识，可以在过滤条件中通过<code>$type</code>操作符用于指定字段的数据类型。
+            table.table.table-bordered
+                thead
+                    tr
+                        th 类型
+                        th 代表数字
+                tbody
+                    tr
+                        td Double
+                        td 1
+                    tr
+                        td String
+                        td 2
+                    tr
+                        td Object
+                        td 3
+                    tr
+                        td Array
+                        td 4
+                    tr
+                        td Binary data
+                        td 5
+                    tr
+                        td Undefined
+                        td 6
+                    tr
+                        td Object id
+                        td 7
+                    tr
+                        td Boolean
+                        td 8
+                    tr
+                        td Date
+                        td 9
+                    tr
+                        td Null
+                        td 10
+                    tr
+                        td Regular Expression
+                        td 11
+                    tr
+                        td JavaScript
+                        td 13
+                    tr
+                        td Symbol
+                        td 14
+                    tr
+                        td JavaScript(with scope)
+                        td 15
+                    tr
+                        td 32-bit integer
+                        td 16
+                    tr
+                        td Timestamp
+                        td 17
+                    tr
+                        td 64-bit integer
+                        td 18
+                    tr
+                        td Min key
+                        td 255
+                    tr
+                        td Max key
+                        td 127
+        strong 对比和排序
+        p 当比较BSON不同数据类型的数据时，MongoDB使用如下的比较顺序（从低到高）：
+            ol
+                li MinKey(internal type)
+                li Null
+                li Numbers(ints, longs, doubles)
+                li Symbol, String
+                li Object
+                li Array
+                li BinData
+                li ObjectId
+                li Boolean
+                li Data, Timestamp
+                li Regular Expression
+                li MaxKey(internal type)
+        p 处于比较的目的，MongoDB会将一些类型视为相等。比如，数字类型数据在比较前会进行转换。
+        p 对于不存在的字段，比较操作时，会将之视为一个空的BSON Object。比如：一个在集合<code>{}、{a: null}</code>的字段<code>a</code>上的排序，
+            | 会将上述两个文档视为是相等的。
+        p 对于数组，一个小于的比较或者一个升序排序使用数组中最小的元素；一个大于的比较或者一个降序排序使用数组中最大的元素。
+            | 因此，当一个包含单个元素的数组（比如：[1]）和一个非数组元素（比如：2）比较时，结果是1和2之间的比较。
+            | 当一个空数组（比如：[]）比较时，可以将之视为null或者不存在的元素。
+        p MongoDB按照如下的顺序排序<code>BinData</code>：
+            ol
+                li 首先按照数据的长度或大小
+                li 之后按照BSON的子类型one-type
+                li 最后，逐字节的对比数据
+        strong ObjectId
+        p ObjectId是：数据量小、尽可能唯一、能够快速生成、有序的。ObjectId由12字节组成，前4个字节代表该ObjectId创建的时间。
+        strong String
+        p BSON字符串的编码是UTF-8。通常，各编程语言的驱动程序会在序列化、反序列化BSON字符串时使用UTF-8的编码。
+        strong Timestamp
+        p BSON提供了一个特殊的timestamp数据类型供MongoDB内部使用，该类型和常规的Date数据类型没有关联。Timestamp类型由64位组成：
+            ul
+                li 前32位是<code>time_t</code>值（从Unix元年开始的秒数）
+                li 后32位是在给定时间内操作的递增的顺序数
+        p 在单个<code>mongod</code>实例中，timestamp总是唯一的。
+        p 在副本集中，<code>oplog</code>有一个<code>ts</code>字段，该字段的值反应了操作的时间，使用BSON timestamp数据类型。
+        .alert.alert-danger BSON Timestamp数据类型是供MongoDB内部使用的。对于应用开发的绝大部分场景，使用BSON Date数据类型。
+        p 如果使用空构造函数（即：new Timestamp()）创建一个BSON Timestamp，如果是在文档的第一个字段中使用则MongoDB会生成一个时间戳，
+            | 否则，MongoDB会生成一个空的时间戳（即：Timestamp(0, 0)）。
+        p 从版本2.1开始，<code>mongo</code> shell中会如下展示Timestamp：
+        p
+            code Timestamp(time_t, ordinal)
+        p 版本2.1之前，<code>mongo</code> shell中会如下展示Timestamp：
+        p
+            code { t : time_t, i : ordinal }
+        strong Date
+        p BSON Date是一个64位的整形数字，代表从Unix元年（1970-01-01）开始的毫秒数。该类型可以表示Unix元年前后各290百万年的时间范围。
+        p 官方将BSON Date数据类型定义成<code>UTF datetime</code>。
+        p 版本2.0开始：BSON Date是有符号的整数。负数代表Unix元年之前的日期。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 在<code>mongo</code> shell中可以使用构造方法<code>new Date()</code>创建一个日期对象：
+                p
+                    code var mydate1 = new Date();
+                p 使用构造方法<code>new ISODate()</code>构建一个日期对象：
+                p
+                    code var mydate2 = new ISODate();
+                p 返回日期对象的字符串标识：
+                p
+                    code mydate1.toString();
+                p 获取日期对象的月份；月份从0开始，即：0代表一月：
+                p
+                    code mydate1.getMonth();
+
+
+
