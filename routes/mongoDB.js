@@ -90,4 +90,37 @@ router.get('/model/reference(/:section)?', function(req, res, next) {
     });
 });
 
+// 第七章：聚合 》目录
+router.get('/aggregation', function(req, res, next) {
+    res.render('mongoDB/chapter_07/index');
+});
+
+// 第七章：聚合 》7.1：简介
+router.get('/aggregation/introduction(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_07/71_introduction', {
+        section : req.params[0]
+    });
+});
+
+// 第七章：聚合 》7.2：相关概念
+router.get('/aggregation/concept(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_07/72_concept', {
+        section : req.params[0]
+    });
+});
+
+// 第七章：聚合 》7.3：示例
+router.get('/aggregation/example(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_07/73_example', {
+        section : req.params[0]
+    });
+});
+
+// 第七章：聚合 》7.4：参考资料
+router.get('/aggregation/reference(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_07/74_reference', {
+        section : req.params[0]
+    });
+});
+
 module.exports = router;

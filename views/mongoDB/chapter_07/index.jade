@@ -1,0 +1,57 @@
+extends ../../layout
+
+block content
+    .container
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li.active 聚合
+        p 聚合操作通过计算数据记录等到计算结果。聚合操作将来自多个文档的数据组合到一起，然后在这些数据之上执行一系列的运算，最终返回单一计算结果。
+            | MongoDB提供了三种不同的聚合方法：聚合管道、map-reduce函数、单一目的的聚合方法和命令。
+        ul
+            li
+                a(href='/mongoDB/aggregation/introduction') 7.1&emsp;简介
+                ul
+                    li
+                        a(href='/mongoDB/aggregation/introduction/section711') 7.1.1&emsp;聚合模式
+                    li
+                        a(href='/mongoDB/aggregation/introduction/section712') 7.1.2&emsp;其他特性行为
+            li
+                a(href='/mongoDB/aggregation/concept') 7.2&emsp;相关概念
+                ul
+                    li
+                        a(href='/mongoDB/aggregation/concept/section721') 7.2.1&emsp;聚合管道
+                    li
+                        a(href='/mongoDB/aggregation/concept/section722') 7.2.2&emsp;Map-Reduce
+                    li
+                        a(href='/mongoDB/aggregation/concept/section723') 7.2.3&emsp;单一目的的聚合操作符
+                    li
+                        a(href='/mongoDB/aggregation/concept/section724') 7.2.4&emsp;集合机制
+            li
+                a(href='/mongoDB/aggregation/example') 7.3&emsp;示例
+                ul
+                    li
+                        a(href='/mongoDB/aggregation/example/section731') 7.3.1&emsp;使用邮编示例数据进行聚合操作
+                    li
+                        a(href='/mongoDB/aggregation/example/section732') 7.3.2&emsp;使用用户爱好示例数据进行聚合操作
+                    li
+                        a(href='/mongoDB/aggregation/example/section733') 7.3.3&emsp;Map-Reduce示例程序
+                    li
+                        a(href='/mongoDB/aggregation/example/section734') 7.3.4&emsp;增量Map-Reduce
+                    li
+                        a(href='/mongoDB/aggregation/example/section735') 7.3.5&emsp;Map函数的问题解决
+                    li
+                        a(href='/mongoDB/aggregation/example/section736') 7.3.6&emsp;Reduce函数的问题解决
+            li
+                a(href='/mongoDB/aggregation/reference') 7.4&emsp;参考资料
+                ul
+                    li
+                        a(href='/mongoDB/aggregation/reference/section741') 7.4.1&emsp;聚合管道参考
+                    li
+                        a(href='/mongoDB/aggregation/reference/section742') 7.4.2&emsp;聚合命令对比
+                    li
+                        a(href='/mongoDB/aggregation/reference/section743') 7.4.3&emsp;SQL和聚合的对比
+                    li
+                        a(href='/mongoDB/aggregation/reference/section744') 7.4.4&emsp;聚合接口
+                    li
+                        a(href='/mongoDB/aggregation/reference/section745') 7.4.5&emsp;聚合表达式中的变量

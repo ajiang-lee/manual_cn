@@ -1,0 +1,11 @@
+extends ../../layout
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/aggregation') 聚合
+            li.active 相关概念
+        h3 7.2&emsp;相关概念
