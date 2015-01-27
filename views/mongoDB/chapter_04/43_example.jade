@@ -26,7 +26,13 @@ block content
                     li
                         a(href='#section4321') 4.3.2.1&emsp;使用父节点关联实现树形结构
                     li
-                        a(href='#section4322') 4.3.2.2&emsp;使用自己点关联实现树形结构
+                        a(href='#section4322') 4.3.2.2&emsp;使用子节点关联实现树形结构
+                    li
+                        a(href='#section4323') 4.3.2.3&emsp;使用祖先节点数组实现树形结构
+                    li
+                        a(href='#section4324') 4.3.2.4&emsp;使用物理路径实现树形结构
+                    li
+                        a(href='#section4325') 4.3.2.5&emsp;使用嵌套集合实现树形结构
             li
                 a(href='#section433') 4.3.3&emsp;根据应用程序的特定上下文建模
                 ul
@@ -34,5 +40,460 @@ block content
                         a(href='#section4331') 4.3.3.1&emsp;为原子性操作建模
                     li
                         a(href='#section4332') 4.3.3.2&emsp;支持关键字搜索的数据建模
+                    li
+                        a(href='#section4333') 4.3.3.3&emsp;为金融数据建模
         h4#section431 4.3.1&emsp;文档关系的建模
-        p 本小节详述了
+        p 本小节详述了如何在文档之间通过嵌套模式或者范式关联模式建立关联关系。
+        h4#section4311 4.3.1.1&emsp;使用嵌套文档实现一对一关系
+        strong 概述
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用嵌套文档实现文档间的一对一关系映射。
+        strong 模式
+        p 考虑如下的顾客和地址的关系。如果地址的访问总是需要跟随顾客信息一起，则使用嵌套文档模式比范式关联模式的效率要好。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 范式关联模式
+                p
+                    code {<br/>
+                    code.two _id: 'joe',<br/>
+                    code.two name: 'Joe Bookreader'<br/>
+                    code }
+                p
+                    code {<br/>
+                    code.two patron_id: 'joe',<br/>
+                    code.two street: '123 Fake Street',<br/>
+                    code.two city: 'Faketon',<br/>
+                    code.two state: 'MA',<br/>
+                    code.two zip: '12345'<br/>
+                    code }
+                p 如果地址信息需要经常跟随顾客信息一起被访问，则上述的范式关联模式需要应用程序发送额外的查询语句获取地址信息。
+                    | 相对凡是关联模式更好的解决方案是将地址信息作为顾客信息的嵌套文档，如下：
+                p
+                    code {<br/>
+                    code.two _id: 'joe',<br/>
+                    code.two name: 'Joe Bookreader',<br/>
+                    code.two address: {<br/>
+                    code.third patron_id: 'joe',<br/>
+                    code.third street: '123 Fake Street',<br/>
+                    code.third city: 'Faketon',<br/>
+                    code.third state: 'MA',<br/>
+                    code.third zip: '12345'<br/>
+                    code.two }<br/>
+                    code }
+                p 对于上述嵌套文档模式，应用程序可以通过单个查询语句获取顾客信息和地址信息，减少了应用程序和数据的交互。
+        h4#section4312 4.3.1.2&emsp;使用嵌套文档实现一对多关系
+        strong 概述
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用嵌套文档实现文档间的一对多关系映射。
+        strong 模式
+        p 考虑如下的顾客和地址的关系。如果地址的访问总是需要跟随顾客信息一起，则使用嵌套文档模式比范式关联模式的效率要好。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 范式关联模式
+                p
+                    code {<br/>
+                    code.two _id: 'joe',<br/>
+                    code.two name: 'Joe Bookreader'<br/>
+                    code }
+                p
+                    code {<br/>
+                    code.two patron_id: 'joe',<br/>
+                    code.two street: '123 Fake Street',<br/>
+                    code.two city: 'Faketon',<br/>
+                    code.two state: 'MA',<br/>
+                    code.two zip: '12345'<br/>
+                    code }
+                p
+                    code {<br/>
+                    code.two patron_id: 'joe',<br/>
+                    code.two street: '1 Some Other Street',<br/>
+                    code.two city: 'Boston',<br/>
+                    code.two state: 'MA',<br/>
+                    code.two zip: '12345'<br/>
+                    code }
+                p 如果地址信息需要经常跟随顾客信息一起被访问，则上述的范式关联模式需要应用程序发送额外的查询语句获取地址信息。
+                    | 相对凡是关联模式更好的解决方案是将地址信息作为顾客信息的嵌套文档，如下：
+                p
+                    code {<br/>
+                    code.two _id: 'joe',<br/>
+                    code.two name: 'Joe Bookreader',<br/>
+                    code.two address: [{<br/>
+                    code.third patron_id: 'joe',<br/>
+                    code.third street: '123 Fake Street',<br/>
+                    code.third city: 'Faketon',<br/>
+                    code.third state: 'MA',<br/>
+                    code.third zip: '12345'<br/>
+                    code.two },{<br/>
+                    code.third patron_id: 'joe',<br/>
+                    code.third street: '1 Some Other Street',<br/>
+                    code.third city: 'Boston',<br/>
+                    code.third state: 'MA',<br/>
+                    code.third zip: '12345'<br/>
+                    code.two }]<br/>
+                    code }
+                p 对于上述嵌套文档模式，应用程序可以通过单个查询语句获取顾客信息和地址信息，减少了应用程序和数据的交互。
+        h4#section4313 4.3.1.3&emsp;使用范式关联实现一对多关系
+        strong 概述
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用范式关联模式实现文档间的一对多关系映射。
+        strong 模式
+        p 考虑如下所示的发行商和图书的关联关系。该示例展示了如何通过使用范式关联模式避免发行商信息的重复，使用嵌套文档模式无法达到该效果。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 如果使用嵌套文档模式实现发行商和图书的关联关系，则会导致发行商数据的重复：
+                p
+                    code {<br/>
+                    code.two title: "MongoDB: The Definitive Guide",<br/>
+                    code.two author: [ "Kristina Chodorow", "Mike Dirolf" ],<br/>
+                    code.two published_date: ISODate("2010-09-24"),<br/>
+                    code.two pages: 216,<br/>
+                    code.two language: "English",<br/>
+                    code.two publisher: {<br/>
+                    code.third name: "O'Reilly Media",<br/>
+                    code.third founded: 1980,<br/>
+                    code.third location: "CA"<br/>
+                    code.two }<br/>
+                    code }
+                p
+                    code {<br/>
+                    code.two title: "50 Tips and Tricks for MongoDB Developer",<br/>
+                    code.two author: "Kristina Chodorow",<br/>
+                    code.two published_date: ISODate("2011-05-06"),<br/>
+                    code.two pages: 68,<br/>
+                    code.two language: "English",<br/>
+                    code.two publisher: {<br/>
+                    code.third name: "O'Reilly Media",<br/>
+                    code.third founded: 1980,<br/>
+                    code.third location: "CA"<br/>
+                    code.two }<br/>
+                    code }
+                p 为了避免上述示例中发行商信息的重复，可以使用范式关联模式实现两者的关联关系，即：将发行商信息保存在独立的集合中。
+                p 当时会用范式关联模式时，关联关系如何存储同样需要考虑。如果每个发行商的图书量较小，并且增长是受限的，
+                    | 此时可以考虑将关联关系存储在发行商中，即：在发行商集合中使用一个数组字段存储对应的图书信息。
+                    | 如果每个发行商的图数量很大，并且增长是不受限的，此时可以考虑将关联关系存储在图书中，即：在图书文档中存储对应的发行商的标识。
+                p 在发行商文档中存储关联关系：
+                p
+                    code {<br/>
+                    code.two name: "O'Reilly Media",<br/>
+                    code.two founded: 1980,<br/>
+                    code.two location: "CA",<br/>
+                    code.two books: [12346789, 234567890, ...]<br/>
+                    code }<br/>
+                p
+                    code {<br/>
+                    code.two _id: 123456789,<br/>
+                    code.two title: "MongoDB: The Definitive Guide",<br/>
+                    code.two author: [ "Kristina Chodorow", "Mike Dirolf" ],<br/>
+                    code.two published_date: ISODate("2010-09-24"),<br/>
+                    code.two pages: 216,<br/>
+                    code.two language: "English"<br/>
+                    code }
+                p
+                    code {<br/>
+                    code.two _id: 234567890,<br/>
+                    code.two title: "50 Tips and Tricks for MongoDB Developer",<br/>
+                    code.two author: "Kristina Chodorow",<br/>
+                    code.two published_date: ISODate("2011-05-06"),<br/>
+                    code.two pages: 68,<br/>
+                    code.two language: "English"<br/>
+                    code }
+                p 在图书文档中存储关系：
+                p
+                    code {<br/>
+                    code.two _id: "oreilly",<br/>
+                    code.two name: "O'Reilly Media",<br/>
+                    code.two founded: 1980,<br/>
+                    code.two location: "CA"<br/>
+                    code }
+                p
+                    code {
+                    code.two _id: 123456789,<br/>
+                    code.two title: "MongoDB: The Definitive Guide",<br/>
+                    code.two author: [ "Kristina Chodorow", "Mike Dirolf" ],<br/>
+                    code.two published_date: ISODate("2010-09-24"),<br/>
+                    code.two pages: 216,<br/>
+                    code.two language: "English",<br/>
+                    code.two publisher_id: "oreilly"<br/>
+                    code }
+                p
+                    code {<br/>
+                    code.two _id: 234567890,<br/>
+                    code.two title: "50 Tips and Tricks for MongoDB Developer",<br/>
+                    code.two author: "Kristina Chodorow",<br/>
+                    code.two published_date: ISODate("2011-05-06"),<br/>
+                    code.two pages: 68,<br/>
+                    code.two language: "English",<br/>
+                    code.two publisher_id: "oreilly"<br/>
+                    code }
+        h4#section432 4.3.2&emsp;树形结构建模
+        p MongoDB允许使用不同的方法来构建树形结构，以达到对大量层级数据的建模操作。
+        p.text-center
+            img(src='/images/mongoDB/chapter_04/4.5.png')
+            br
+            small 图4.5 树形结构模拟数据
+        h4#section4321 4.3.2.1&emsp;使用父节点关联实现树形结构
+        strong 概述
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用父节点关联来构建树形结构。
+        strong 模式
+        p <em>父节点关联</em>模式将每个树节点保存在单个文档中，并且在每个子节点中保存直接父节点的<code>_id</code>字段的值。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 对于图4.5中的树形结构，可以使用如下文档结构表示：
+                p
+                    code db.categories.insert( { _id: "MongoDB", parent: "Databases" } )<br/>
+                    code db.categories.insert( { _id: "dbm", parent: "Databases" } )<br/>
+                    code db.categories.insert( { _id: "Databases", parent: "Programming" } )<br/>
+                    code db.categories.insert( { _id: "Languages", parent: "Programming" } )<br/>
+                    code db.categories.insert( { _id: "Programming", parent: "Books" } )<br/>
+                    code db.categories.insert( { _id: "Books", parent: null } )
+                ul
+                    li 可以使用以下语句快速直接的获取某个节点的父节点：
+                        p
+                            code db.categories.findOne({_id: 'MongoDB'}).parent
+                    li 为了加速父节点字段的查询字段，可以使用如下语句在<code>parent</code>字段上创建索引：
+                        p
+                            code db.categories.ensureIndex({parent: 1})
+                    li 可以使用如下语句获取某个节点的直接子节点：
+                        p
+                            code db.categories.find({parent: 'Database'})
+                p <em>父节点关联</em>模式提供了一个简单的方式解决树形结构数据的存储，但是，如果需要某个节点的子节点树，需要额外的查询。
+        h4#section4322 4.3.2.2&emsp;使用子节点关联实现树形结构
+        strong 概述
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用子节点关联来构建树形结构。
+        strong 模式
+        p <em>子节点关联</em>模式将每个树节点保存在单个文档中，并且在每个父节点中以数组形式保存直接子节点的<code>_id</code>字段的值。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 对于图4.5中的树形结构，可以使用如下文档结构表示：
+                p
+                    code db.categories.insert( { _id: "MongoDB", children: [] } )<br/>
+                    code db.categories.insert( { _id: "dbm", children: [] } )<br/>
+                    code db.categories.insert( { _id: "Databases", children: [ "MongoDB", "dbm" ] } )<br/>
+                    code db.categories.insert( { _id: "Languages", children: [] } )<br/>
+                    code db.categories.insert( { _id: "Programming", children: [ "Databases", "Languages" ] } )<br/>
+                    code db.categories.insert( { _id: "Books", children: [ "Programming" ] } )
+                ul
+                    li 可以使用如下语句获取某个节点的直接节点列表：
+                        p
+                            code db.categories.findOne( { _id: "Databases" } ).children
+                    li 为了提高<code>children</code>字段的查询速度，可以在该字段上创建索引：
+                        p
+                            code db.categories.ensureIndex( { children: 1 } )
+                    li 可以使用如下语句查询指定节点的父节点：
+                        p
+                            code db.categories.find( { children: "MongoDB" } )
+                p <em>子节点关联</em>模式提供了一种存储树形结构数据的简单方式，同时，该模式能够适应多个父节点的场景。
+        h4#section4323 4.3.2.3&emsp;使用祖先节点数组实现树形结构
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用祖先节点数组来构建树形结构。
+        strong 模式
+        p <em>祖先节点数组</em>模式将每个树节点保存在单个文档中，并且在每个节点中以数组形式保存祖先节点的<code>_id</code>字段的值，
+            | 同时保存直接父节点的<code>_id</code>字段的值。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 对于图4.5中的树形结构，可以使用如下文档结构表示：
+                p
+                    code db.categories.insert( { _id: "MongoDB", ancestors: [ "Books", "Programming", "Databases" ], parent: "Databases" } )<br/>
+                    code db.categories.insert( { _id: "dbm", ancestors: [ "Books", "Programming", "Databases" ], parent: "Databases" } )<br/>
+                    code db.categories.insert( { _id: "Databases", ancestors: [ "Books", "Programming" ], parent: "Programming" } )<br/>
+                    code db.categories.insert( { _id: "Languages", ancestors: [ "Books", "Programming" ], parent: "Programming" } )<br/>
+                    code db.categories.insert( { _id: "Programming", ancestors: [ "Books" ], parent: "Books" } )<br/>
+                    code db.categories.insert( { _id: "Books", ancestors: [ ], parent: null } )
+                ul
+                    li 可以使用如下语句快速直接的获取某个节点的祖先节点列表：
+                        p
+                            code db.categories.findOne( { _id: "MongoDB" } ).ancestors
+                    li 为了提高在<code>ancestors</code>字段上的查询速度，可以通过如下语句在该字段上创建索引：
+                        p
+                            code db.categories.ensureIndex( { ancestors: 1 } )
+                    li 可以通过如下语句获取指定节点的后代节点列表：
+                        p
+                            code db.categories.find( { ancestors: "Programming" } )
+                p 通过索引，<em>祖先节点数组</em>提供了一种高效的获取节点的祖先节点、后代节点的方式。
+                p 相对于<em>物理路径</em>，<em>祖先节点</em>模式的查询速度略慢，但是该模式更直接，更易于使用。
+        h4#section4324 4.3.2.4&emsp;使用物理路径实现树形结构
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用物理路径来构建树形结构。
+        strong 模式
+        p <em>物理路径</em>模式将每个树节点保存在单个文档中，同时，在每个节点文档中保存了该节点的祖先节点的路径信息（即：使用<code>_id</code>字段的值表示）。
+            | 尽管<em>物理路径</em>模式中需要使用到正则表达式的匹配，但是该模式仍然提供了灵活的路径匹配模式，比如：通过路径片段匹配文档。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 对于图4.5中的树形结构，可以使用如下文档结构表示：
+                p
+                    code db.categories.insert( { _id: "Books", path: null } )<br/>
+                    code db.categories.insert( { _id: "Programming", path: ",Books," } )<br/>
+                    code db.categories.insert( { _id: "Databases", path: ",Books,Programming," } )<br/>
+                    code db.categories.insert( { _id: "Languages", path: ",Books,Programming," } )<br/>
+                    code db.categories.insert( { _id: "MongoDB", path: ",Books,Programming,Databases," } )<br/>
+                    code db.categories.insert( { _id: "dbm", path: ",Books,Programming,Databases," } )
+                ul
+                    li 可以通过以下语句获取整个树形结构：
+                        p
+                            code db.categories.find().sort( { path: 1 } )
+                    li 可以使用正则表达式获取<code>Programming</code>节点的子节点：
+                        p
+                            code db.categories.find( { path: /,Programming,/ } )
+                    li 可以使用以下语句获取<code>Books</code>节点的子节点，同时<code>Books</code>节点是树形结构的根节点：
+                        p
+                            code db.categories.find( { path: /^,Books,/ } )
+                    li 可以使用如下语句在<code>path</code>字段上创建索引
+                        p
+                            code db.categories.ensureIndex( { path: 1 } )
+                        p 上述索引可以提高以下查询语句的性能：
+                        ul
+                            li 对节点<code>Books</code>的子节点的查询
+                            li 对节点<code>Programming</code>的子节点的查询，或类似的查询。由于节点位于索引的中间部分，
+                                | 所以查询可能需要遍历整个索引
+                        p 对于上述两种情况，索引只有在索引数据相当小时才能提高查询语句的性能。
+        h4#section4325 4.3.2.5&emsp;使用嵌套集合实现树形结构
+        p 数据在MongoDB中的模式十分灵活，<em>集合</em>并不强制<em>文档</em>的结构。如何对数据建模完全由你决定，但是可能会影响到应用程序的性能和数据库的性能。
+        p 本小节内容详述了如何使用嵌套集合来构建树形结构。
+        strong 模式
+        p <em>嵌套集合</em>以闭环的形式将树形结构连接起来，然后对闭环中的每个节点进行标识。闭环中的每个节点被访问两次：一次在闭环的初始化阶段；
+            | 一次在闭环的返回操作中。<em>嵌套集合</em>模式将每个节点保存在单个节点中，并且记录该节点的直接父节点，同时记录节点在闭环中的标识。
+        p.text-center
+            img(src='/images/mongoDB/chapter_04/4.10.png')
+            br
+            small 图4.6 树形结构的闭环标识
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 对于图4.6中的树形结构，可以使用如下文档结构表示：
+                p
+                    code db.categories.insert( { _id: "Books", parent: 0, left: 1, right: 12 } )<br/>
+                    code db.categories.insert( { _id: "Programming", parent: "Books", left: 2, right: 11 } )<br/>
+                    code db.categories.insert( { _id: "Languages", parent: "Programming", left: 3, right: 4 } )<br/>
+                    code db.categories.insert( { _id: "Databases", parent: "Programming", left: 5, right: 10 } )<br/>
+                    code db.categories.insert( { _id: "MongoDB", parent: "Databases", left: 6, right: 7 } )<br/>
+                    code db.categories.insert( { _id: "dbm", parent: "Databases", left: 8, right: 9 } )
+                p 可以通过以下语句获取某个节点的子节点
+                p
+                    code var databaseCategory = db.categories.findOne( { _id: "Databases" } );<br/>
+                    code db.categories.find( { left: { $gt: databaseCategory.left }, right: { $lt: databaseCategory.right } }
+                p <em>嵌套集合</em>模式对于获取子节点非常高效，但是不适合更改树结构的场景。通常情况下，该模式只适用于静态树结构。
+        h4#section433 4.3.3&emsp;根据应用程序的特定上下文建模
+        p 本节内容详述了在具体应用场景中，如何对数据进行建模，本节内容只是一个意见参考。
+        h4#section4331 4.3.3.1&emsp;为原子性操作建模
+        strong 模式
+        p 在MongoDB中，写操作（比如：<code>db.collection.update()、db.collection.findAndModify()、db.collection.remove()</code>）
+            | 在单文档上是原子性的。对于需要同时更新的字段，如果需要确保操作的原子性，必须将对应的字段包含在单个文档中。
+        p 比如，需要维护图书相关的新，包括当前可用的图书数量、已借出的图数量。
+        p 由于业务上要求可用的图数量和已借出的图数量必须是同步的，所以为了确保操作的原子性，需要将<code>available、checkout</code>两个字段存储在单个文档中：
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p
+                    code {<br/>
+                    code.two _id: 123456789,<br/>
+                    code.two title: "MongoDB: The Definitive Guide",<br/>
+                    code.two author: [ "Kristina Chodorow", "Mike Dirolf" ],<br/>
+                    code.two published_date: ISODate("2010-09-24"),<br/>
+                    code.two pages: 216,<br/>
+                    code.two language: "English",<br/>
+                    code.two publisher_id: "oreilly",<br/>
+                    code.two available: 3,<br/>
+                    code.two checkout: [ { by: "joe", date: ISODate("2012-10-15") } ]<br/>
+                    code }
+                p 使用如下语句更新对应的数据：
+                p
+                    code db.books.update (<br/>
+                    code.two { _id: 123456789, available: { $gt: 0 } },<br/>
+                    code.two {<br/>
+                    code.third $inc: { available: -1 },<br/>
+                    code.third $push: { checkout: { by: "abc", date: new Date() } }<br/>
+                    code.two }<br/>
+                    code )
+                p 如果有可用的图书，则上述语句返回如下结果：
+                p
+                    code WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+                p 返回结果中，<code>nMatched</code>字段标示匹配到1本图书，<code>nModified</code>字段标示成功更新了一本图书。
+                p 如果没有可用的图书，则返回结果中的<code>nMatched、nModified</code>字段的值为0。
+        h4#section4332 4.3.3.2&emsp;支持关键字搜索的数据建模
+        .alert.alert-danger
+            p 关键字搜索和文本搜索、全文搜索不同，不会提供词干，或者其他文本处理特性。在MongoDB的2.4版本中，提供了文本搜索特性。
+        p 如果应用程序需要在包含内容的字段上执行查询，可以使用精确匹配，或者使用<code>$regex</code>操作符执行正则匹配。
+            | 但是，对于一些内容的处理，上述两种方法不能满足应用的业务要求。
+        p <em>支持关键字的模型</em>提供了一种支持关键字搜索的方式，该模式将关键字存储在文档的某个数组字段中。同时，
+            | 结合<code>多值索引</code>，该模式可以支持高效的查询。
+        strong 模式
+        p 为了支持关键字搜索，需要在文档中创建一个数组字段，将关键字存储在该字段中，并且，为了调高查询效率，可以在该字段上创建<em>多值索引</em>。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 如下所示，文档中的<code>topics</code>字段记录了该文档的关键字：
+                p
+                    code { title : "Moby-Dick" ,<br/>
+                    code.two author : "Herman Melville" ,<br/>
+                    code.two published : 1851 ,<br/>
+                    code.two ISBN : 0451526996 ,<br/>
+                    code.two topics : [ "whaling" , "allegory" , "revenge" , "American" , "novel" , "nautical" , "voyage" , "Cape Cod" ]<br/>
+                    code }
+                p 并且可以在上述文档的<code>topics</code>字段上创建一个多值索引：
+                p
+                    code db.volumes.ensureIndex( { topics: 1 } )
+                p 多值索引会为数组中的每个元素创建独立的索引条目。
+                .alert.alert-danger
+                    p 如果数组中的元素很大，此时针对数组的插入将会非常昂贵，因为每次插入操作需要更新对应的索引。
+        strong 多值索引的限制
+        p 通过使用上述模型和多值索引，MongoDB可以支持基于关键字的搜索；但是，在以下情景中，这种关键字索引相比于全文搜索效率低下，或者说不适合：
+            ul
+                li <strong>词干</strong>&emsp;关键字搜索不支持分词即关联词的搜索
+                li <strong>同义词</strong>&emsp;关键字搜索不支持相关词搜索，只能在应用程序中实现同义词的搜索
+                li <strong>排名</strong>&emsp;关键字搜索不支持针对关键字的权重，不支持排名操作
+                li <strong>异步索引</strong>&emsp;在MongoDB中，创建索引是同步的，意味着索引数据是同步的，是最新的。但是，
+                    | 在特定场景下，异步索引可能更适合。
+        h4#section4333 4.3.3.3&emsp;为金融数据建模
+        strong 概述
+        p MongoDB使用IEEE 754标准的64为浮点型数字，或者32位或64位有符号整形数字存储数字数据。处理金融数据的应用程序往往需要精确的数值单位。
+            | 但是，在当今计算机硬件上进行的浮点数运算，往往不能满足上述要求。另外，对于一些小数、分数，比如三分之一、十分之一，
+            | 这些数字在浮点计算中不存在准确的对应结果。
+        p 本小节内容介绍了两种对金融数据建模的方法：
+            ul
+                li <strong>准确精度</strong>&emsp;该种方法将金融数据乘以一个10的幂的数字
+                li <strong>任意精度</strong>&emsp;该种方法使用两部分表示金融数据：一部分以非数字的形式表示需要代表的金融数据；一部分以一个浮点逼近的的数字代表金融数据。
+        strong 精确精度模式的使用场景
+        p 如果经常需要在服务端进行金融数据的计算，则精确精度模式比较适合，比如：
+            ul
+                li 需要精确的查询金融数据
+                li 需要在服务端对金融数据进行计算（比如：<code>$inc、$mul</code>）
+        strong 任意精度模式的使用场景
+        p 如果不需要经常在服务端金融数据的计算，则任意精度模式比较适合，比如：
+            ul
+                li 需要处理任意或不可预见的精度的数据
+                li 服务端的近似值足够使用，可能已经经过客户端的预处理了
+        strong 精确精度模式
+        p 使用该模式，需要考虑以下内容：
+            ul
+                li 决定金融数据需要的最大精度。比如：应用程序中的美元，需要精确到一美分的十分之一。
+                li 将金融数据乘以一个10的幂的数字，确保不丢失精度。
+                li 存储转换之后的数字
+        p 比如：以下示例展示了如何展示精度为一美分的十分之一的精度：
+        p
+            code { price: 9990, currency: "USD" }
+        p 上述示例的前提假设是：
+            ul
+                li 对任意一个数据，比例系数（即：乘以的数字）是相同的
+                li 针对每种金融数据，该比例都是一个常数，即：应用程序决定了每种金融数据的比例系数
+        p 当使用该种模式时，应用程序必须根据具体的业务要求决定比例系数。
+        strong 任意精度模式
+        p 使用该种模式时，需要将金融数据存储在两个字段中：
+            ul
+                li 一个字段存储金融数据的非数字形式（以字符串、BinData类存储）
+                li 一个字段存储金融数据的浮点逼近数
+        p 如下所示：
+        p
+            code {<br/>
+            code.two price: { display: "9.99", approx: 9.9900000000000002, currency: "USD" },<br/>
+            code.two fee: { display: "0.25", approx: 0.2499999999999999, currency: "USD" }<br/>
+            code }
+        p 注意，应用程序可能针对浮点逼近数据进行范围查询或者排序操作。
