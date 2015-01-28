@@ -9,3 +9,42 @@ block content
                 a(href='/mongoDB/aggregation') 聚合
             li.active 简介
         h3 7.1&emsp;简介
+        p <code>聚合</code>是指处理数据记录并返回计算结果的操作。MongoDB提供了丰富的聚合操作对数据集进行检验、执行计算操作。
+            | 在<code>mongod</code>示例中执行数据聚合简化了应用层的代码，并且限制了资源的使用。
+        p 和查询语句类似，MongoDB的聚合操作使用集合的文档作为输入，以单个或多个文档的形式返回计算结果。
+        h4#section711 7.1.1&emsp;聚合模式
+        strong 聚合管道
+        p MongoDB2.2中引进了一个新的聚合框架，该框架参考了数据处理管道的概念。文档进入一个多阶段处理管道，管道对输入文档进行计算，
+            | 并最终产生一个聚合结果。
+        p 最基础的管道阶段是提供类似查询语句的过滤功能，以及改变输入文档类型的文档转换功能。
+        p 其他管道操作提供了按照特定字段对文档进行分组、排序功能，或者对数组内容进行聚合的功能，包括嵌套文档数组。另外，
+            | 管道阶段可以使用<code>操作符</code>，比如：计算平均值、连接字符串。
+        p 通过在MongoDB中使用本地操作符，管道提供了高效的数据聚合功能，并且是MongoDB中首选的进行数据聚合操作的方法。
+        p.text-center
+            img(src='/images/mongoDB/chapter_07/7.1.png')
+            br
+            small 图7.1 管道操作示例。上述管道操作拥有<code>$match、$group</code>两个阶段。
+        strong Map-Reduce
+        p MongoDB同样提供了<code>map-reduce</code>操作符来执行数据聚合操作。通常来讲，map-reduce操作符包含两个阶段：
+            | <code>map</code>阶段处理输入的每个文档，并且为每个输入文档映射一个或多个对象；
+            | <code>reduce</code>阶段将<code>map</code>操作的输出结果聚合起来。另外，map-reduce可选的阶段是<code>finalize</code>，
+            | 用于对最终的结果进行修改操作。同其他聚合操作类似，map-reduce可以指定查询过滤条件用于指定输入文档，也可以对结果进行排序，限制结果集的数量。
+        p Map-reduce使用普通的JavaScript函数来执行map、reduce、finalize操作。虽说JavaScript函数比聚合管道拥有更大的灵活性，但是通常来讲，
+            | 相比于聚合管道，map-reduce的效率较低，并且复杂度较高。
+        .alert.alert-danger 从MongoDB2.4开始，在map-reduce操作符中一些<code>mongo</code> shell函数和属性不再可用。
+            | MongoDB2.4提供了同时执行多个JavaScript函数的功能，在版本2.4之前，JavaScript代码只能在单个线程中执行，在map-reduce中可能引起并发问题。
+        p.text-center
+            img(src='/images/mongoDB/chapter_07/7.2.1.png')
+            img(src='/images/mongoDB/chapter_07/7.2.2.png')
+            br
+            small 图7.2 map-reduce操作符示例
+        strong 单一目的的聚合操作符
+        p 对于常用的单一目的的聚合操作，MongoDB提供了特定目的的数据库命令。包括：返回匹配文档的总数，返回某个字段值的不同值，针对某个字段对数据进行分组。
+            | 所有这些聚合操作都是针对单个集合。虽然这些操作提供了单一目的聚合操作，但是相较于管道和map-reduce，它们缺少灵活性。
+        p.text-center
+            img(src='/images/mongoDB/chapter_07/7.3.png')
+            br
+            small 图7.3 单一目的的聚合操作示例
+        h4#section712 7.1.2&emsp;其他特性行为
+        p 聚合管道和map-reduce都可以针对分片集合进行聚合操作，并且map-reduce操作符可以输出一个分片集合。
+        p 聚合管道在某些阶段中通过使用索引可以提高处理性能，另外，聚合管道在实现上存在一个内部优化阶段。

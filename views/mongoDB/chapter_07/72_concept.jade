@@ -9,3 +9,310 @@ block content
                 a(href='/mongoDB/aggregation') 聚合
             li.active 相关概念
         h3 7.2&emsp;相关概念
+        p MongoDB提供了三种执行聚合操作的方法，每一种方法都有自身的优点，都是针对特定场景存在的。本节内容详述了这三种方法，
+            | 以及每种方法的行为特点和限制条件。
+        ul
+            li
+                a(href='#section721') 7.2.1&emsp;聚合管道
+            li
+                a(href='#section722') 7.2.2&emsp;Map-Reduce
+            li
+                a(href='#section723') 7.2.3&emsp;单一目的的聚合操作符
+            li
+                a(href='#section724') 7.2.4&emsp;聚合机制
+        h4#section721 7.2.1&emsp;聚合管道
+        p 版本2.2新特性。
+        p 聚合管道是一个数据聚合框架，该框架参考了数据处理管道的概念。文档进入一个多阶段处理的管道，最终输入文档被转换成一个聚合结果。
+        p 聚合管道提供了除map-reduce外一个执行聚合操作的选项，并且相较于一些复杂的map-reduce，可能是更优的一个选项。
+        p 聚合管道在值类型和结果集大小上存在一些限制。
+        strong 管道
+        p MongoDB的聚合管道由<em>阶段</em>组成（不同的数据处理阶段）。当文档在管道中流动时，每个数据处理阶段都会对文档进行转换操作。
+            | 管道阶段并不会对每个输入文档产生一个对应的输出文档，即：有些管道阶段可能会产生新的文档，或者过滤掉输入文档。
+            | 管道阶段在一个管道中可能出现多次。
+        p MongoDB在<code>mongo</code> shell中提供了<code>db.collection.aggregate()</code>方法，
+            | 以及<code>aggregate</code>命令用于执行聚合操作。
+        strong 管道表达式
+        p 一些管道阶段使用单个管道表达式作为该阶段的操作。管道表达式指定了对输入文档的转换操作。管道表达式的结构类似文档，
+            | 并且可以包含其他管道表达式。
+        p 管道表达式只能作用于管道中的当前文档，不能处理其他文档的数据：管道表达式提供文档的内存内转换操作。
+        p 通常来讲，管道表达式是无状态的，只有在被聚合进程发现时进行计算，只有一个例外：累加表达式。
+        p 对于使用<code>$group</code>管道操作符的累加器，当文档通过管道时，会维护他们的状态（即：总数、最大值、最小值，以及相关数据）。
+        strong 聚合管道的行为
+        p 在MongoDB中，<code>aggregate</code>命令作用在单个集合上，逻辑上将整个集合作为管道的输入数据。为了优化聚合操作，
+            | 如果有可能，使用如下策略避免整个集合的扫描：
+        p
+            strong
+                small 管道操作符和索引
+        p 当管道操作符<code>$match、$sort</code>出现在管道的起始处时，他们可以通过使用索引来提高性能。
+        p 版本2.4新特性：管道操作符<code>$geoNear</code>可以利用空间索引提高性能。当使用<code>$geoNear</code>时，
+            | 必须是聚合管道的第一个处理阶段。
+        p 即使管道使用了索引，聚合操作仍然需要获取实际的文档数据，即：索引不能覆盖整改聚合管道。
+        p 版本2.6新特性：索引可以覆盖整个查询，即：查询需要的所有数据均包含在索引中（即：查询需要的过滤条件、返回字段都在索引中）。
+        p
+            strong
+                small 提前过滤
+        p 如果聚合操作只需要集合的部分文档数据时，使用<code>$match、$limit、$skip</code>操作符限制进入管道的数据量，以提高处理效率。
+            | 当<code>$match</code>位于管道的起始处时，<code>$match</code>操作符会选择使用合适的索引，以过滤不需要的文档。
+        p 在管道的起始处使用<code>$match</code>，并且后跟一个<code>$sort</code>，逻辑上等于一个使用索引的带有排序的查询语句。
+            | 根据实际情况，如果有可能，尽量在管道开始处使用<code>$match</code>，以减少管道处理的数据量。
+        p
+            strong
+                small 其他特性
+        p 聚合管道拥有一个内部的优化阶段，对于特定的管道顺序，该优化阶段可以提高执行效率。
+        p 聚合管道支持分片集合的聚合操作。
+        h4#section722 7.2.2&emsp;Map-Reduce
+        p Map-reduce是一种将大量数据浓缩成有用聚合结果的数据处理范例。对于map-reduce操作，MongoDB提供了<code>mapReduce</code>数据库命令。
+        p 考虑如下示例：
+        p.text-center
+            img(src='/images/mongoDB/chapter_07/7.2.1.png')
+            img(src='/images/mongoDB/chapter_07/7.2.2.png')
+            br
+            small 图7.3 map-reduce操作符示例
+        p 在上例中，MongoDB对每个输入文档（集合中满足查询条件的文档）使用<em>map</em>函数，map函数产生键值对，对于有多个值的键，
+            | MongoDB使用<em>reduce</em>函数，reduce函数将键的多值浓缩成聚合结果，之后，MongoDB将结果存储在一个集合中。另外，
+            | reduce函数的输出结果可以可选的使用一个<em>finalize</em>函数，用于对聚合结果做后续的处理。
+        p MongoDB中所有map-reduce函数都是JavaScript函数，都是在<code>mongod</code>进程中运行的。Map-reduce操作将单个集合作为输入数据，
+            | 并且在执行map函数之前，可以进行任意的排序等操作。<code>mapReduce</code>可以将结果以单个文档的形式返回，
+            | 也可以将结果写入集合中。输入、输出集合都可以是分片集合。
+        .alert.alert-danger 对于大多数聚合操作，聚合管道提供了更优的性能，以及易用的接口。但是，map-reduce操作提供了更好的灵活性。
+        strong Map-Reduce的JavaScript函数
+        p 在MongoDB中，map-reduce操作使用普通的JavaScript函数将值映射、关联到一个键，如果一个键有多个值，则将多个值降低为单个对象。
+        p JavaScript函数的使用使map-reduce操作更具灵活性，例如，当处理一个文档时，map函数可以创建多个键值映射，或者没有映射。
+            | map-reduce操作同样使用一个普通的JavaScript函数对聚合结果进行修改，比如执行额外的计算操作。
+        strong Map-Reduce的行为
+        p 在MongoDB中，map-reduce可以将结果写入一个集合中，或者直接返回结果。如果将结果写入一个集合，则可以针对结果集集合执行后续的map-reduce操作。
+        p 当直接返回map-reduce的结果时，必须确保返回文档的大小满足<code>BSON Document Size</code>的限制（16M）。
+        p MongoDB的map-reduce操作支持分片集合的聚合操作，并且map-reduce的结果集也可以是分片集合。
+        h4#section723 7.2.3&emsp;单一目的的聚合操作符
+        p 对于很多基于一个输入产生特定计算结果的聚合操作，MongoDB提供了很多聚合操作符。尽管相比于聚合管道、map-reduce，该操作存在很多限制，
+            | 但是它具有直接简单的语义，并且是针对特定场景的。
+        strong Count
+        p MongoDB可以返回一个匹配结果集的文档数量。在<code>mongo</code> shell中，可以使用命令<code>count</code>,
+            | 以及方法<code>count()、cursor.count()</code>来获取结果集的记录总数。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合<code>reocrds</code>包含如下文档：
+                p
+                    code { a: 1, b: 0 }<br/>
+                    code { a: 1, b: 1 }<br/>
+                    code { a: 1, b: 4 }<br/>
+                    code { a: 2, b: 2 }
+                p 如下操作返回集合<code>records</code>中的文档总数，结果为4：
+                p
+                    code db.records.count()
+                p 如下操作返回集合<code>records</code>中字段<code>a</code>值为1的文档总数，结果为3：
+                p
+                    code db.records.count({a: 1})
+        strong Distinct
+        p <em>distinct</em>操作从匹配结果集中获取某个字段的所有不重复的值。在<code>mongo</code> shell中，
+            | 可以使用命令<code>distinct</code>和方法<code>db.collection.distinct()</code>获取字段的不同值的数组。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合<code>records</code>包含如下文档：
+                p
+                    code { a: 1, b: 0 }<br/>
+                    code { a: 1, b: 1 }<br/>
+                    code { a: 1, b: 1 }<br/>
+                    code { a: 1, b: 4 }<br/>
+                    code { a: 2, b: 2 }<br/>
+                    code { a: 2, b: 2 }
+                p 如下操作回去文档中字段<code>b</code>的不同值的数组：
+                p
+                    code db.records.distinct('b')
+                p 返回结果如下：
+                p
+                    code [ 0, 1, 4, 2 ]
+        strong Group
+        p <em>group</em>操作将匹配结果集中的文档按照某个字段或某些字段的值进行分组。操作返回一个对象数组，数组中的每个对象包含针对每个分组的计算结果。
+            | 可以使用命令<code>group</code>和方法<code>db.collection.group()</code>获取分组计算结果。
+        .alert.alert-danger <code>group</code>不能作用于分组集合。另外，<code>group</code>的结果不能超过16M。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合<code>records</code>包含如下文档：
+                p
+                    code { a: 1, count: 4 }<br/>
+                    code { a: 1, count: 2 }<br/>
+                    code { a: 1, count: 4 }<br/>
+                    code { a: 2, count: 3 }<br/>
+                    code { a: 2, count: 1 }<br/>
+                    code { a: 1, count: 5 }<br/>
+                    code { a: 4, count: 4 }
+                p 如下语句将集合文档按照字段<code>a</code>分组，并且<code>a</code>的值小于3，然后计算每个分组中文档<code>count</code>字段的和：
+                p
+                    code db.records.group({<br/>
+                    code.two key: {a: 1},<br/>
+                    code.two cond: {a: {$lt: 3}},<br/>
+                    code.two reduce: function(cur, result){result.count += cur.count},<br/>
+                    code.two initial: {count: 0}<br/>
+                    code })
+                p 返回结果如下：
+                p
+                    code [<br/>
+                    code.two { a: 1, count: 15 },<br/>
+                    code.two { a: 2, count: 4 }<br/>
+                    code ]
+        h4#section724 7.2.4&emsp;聚合机制
+        strong 聚合管道的优化
+        p 聚合管道操作内部存在一个管道优化阶段，该优化操作为了提高执行效率会尝试重组管道。
+        p 使用含有<code>explain</code>选项的方法<code>db.collection.aggregate()</code>可以查看优化器是如何对聚合管道进行转换的。
+        p 不同MongoDB版本，优化器的行为可能不同。
+        p
+            strong
+                small 投影优化
+        p 为了得到聚合结果，聚合管道可以决定是否只需要文档的部分字段，如果是，管道将只用所需字段，以减少通过管道的数据总量。
+        p
+            strong
+                 small 管道顺序优化
+        p <strong>$sort + $match顺序优化</strong>&emsp;当<code>$match</code>操作跟随在操作<code>$sort</code>之后时，
+            | <code>$match</code>操作会移动到<code>$sort</code>操作之前，以减少排序的数据量。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设聚合管道包含以下处理阶段：
+                p
+                    code {$sort: {age: -1}},<br/>
+                    code {$match: {status: 'A'}}
+                p 在管道优化阶段，优化器会将上述管道顺序转化为以下顺序：
+                p
+                    code {$match: {status: 'A'}},<br/>
+                    code {$sort: {age: -1}}
+        p <strong>$skip + $limit顺序优化</strong>&emsp;当<code>$limit</code>操作跟随在操作<code>$skip</code>之后时，
+            | <code>$limit</code>操作会移动到<code>$skip</code>操作之前，以降低返回的数据量。
+            | 使用上述转换后，<code>$limit</code>的值将发生改变，改变为<code>$skip + $limit</code>。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设聚合管道包含以下处理阶段：
+                p
+                    code {$skip: 10},<br/>
+                    code {$limit: 5}
+                p 在管道优化阶段，优化器会将上述管道顺序转化为以下顺序：
+                p
+                    code {$limit: 15},<br/>
+                    code {$skip: 10}
+        p <strong>$redact + $match顺序优化</strong>&emsp;当<code>$match</code>操作跟随在操作<code>$redact</code>之后时，
+            | 如果可能，聚合操作有时可能会将部分<code>$match</code>条件添加到<code>$redact</code>之前。如果添加的<code>$match</code>位于管道的起始处，
+            | 管道可以利用索引提供的高效读操作，并且可以限制进入管道的数据总量。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设聚合管道包含以下处理阶段：
+                p
+                    code { $redact: { $cond: { if: { $eq: [ "$level", 5 ] }, then: "$$PRUNE", else: "$$DESCEND" } } },<br/>
+                    code { $match: { year: 2014, category: { $ne: "Z" } } }
+                p 则优化器会在<code>$redact</code>前添加一个<code>$match</code>：
+                p
+                    code { $match: { year: 2014 } },<br/>
+                    code { $redact: { $cond: { if: { $eq: [ "$level", 5 ] }, then: "$$PRUNE", else: "$$DESCEND" } } },<br/>
+                    code { $match: { year: 2014, category: { $ne: "Z" } } }
+        p
+            strong
+                small 管道阶段合并优化
+        p 如果可能，优化器会将一个管道阶段合并到前一个阶段中。通常来讲，合并操作发生在管道阶段重组之后。
+        p <strong>$sort + $limit合并</strong>&emsp;当<code>$limit</code>紧跟在<code>$sort</code>之后时，
+            | 优化器会将<code>$limit</code>合并到<code>$sort</code>中。如此一来，排序操作只需要针对结果解的前<code>n</code>条记录排序，
+            | <code>n</code>的值由<code>$limit</code>指定，并且，MongoDB只需要在内存中保存前<code>n</code>条记录。
+        p <strong>$limit + $limit合并</strong>&emsp;如果两个<code>$limit</code>同时出现，则优化器会将这两个<code>$limit</code>合并成一个，
+            | <code>$limit</code>的值为两者中最小的。
+        p <strong>$skip + $skip合并</strong>&emsp;如果两个<code>$skip</code>同时出现，则优化器会将这两个<code>$skip</code>合并成一个，
+            | <code>$skip</code>的值为两者的和。
+        p <strong>$match + $match合并</strong>&emsp;如果两个<code>$match</code>同时出现，则优化器会将这两个<code>$match</code>合并成一个，
+            | <code>$match</code>的值为两者的交集。
+        p
+            strong
+                small 示例
+        p 以下示例程序展示了优化器如何使用上述的两种优化策略：管道顺序优化、管道阶段合并优化。
+        .panel.panel-default
+            .panel-heading $sort + $skip + $limit
+            .panel-body
+                p 如果管道由以下阶段组成：
+                p
+                    code { $sort: { age : -1 } },<br/>
+                    code { $skip: 10 },<br/>
+                    code { $limit: 5 }
+                p 首先，优化器使用管道顺序优化策略，将<code>$skip + $limit</code>阶段重组成如下顺序：
+                p
+                    code { $sort: { age : -1 } },<br/>
+                    code { $limit: 15 },<br/>
+                    code { $skip: 10 }
+                p 重组之后的阶段满足管道阶段合并优化策略，将<code>$limit</code>合并到<code>$sort</code>中，以减少内存的使用。
+        .panel.panel-default
+            .panel-heading $limit + $skip + $limit + $skip
+            .panel-body
+                p 如果管道由以下阶段组成：
+                p
+                    code { $limit: 100 },<br/>
+                    code { $skip: 5 },<br/>
+                    code { $limit: 10 },<br/>
+                    code { $skip: 2 }
+                p 首先，优化器使用管道顺序优化策略，将<code>$skip + $limit</code>阶段重组成如下顺序：
+                p
+                    code { $limit: 100 },<br/>
+                    code { $limit: 15 },<br/>
+                    code { $skip: 5 },<br/>
+                    code { $skip: 2 }
+                p 重组之后的阶段满足管道阶段合并优化策略，分别将前两个阶段、后两个阶段合并，结果如下：
+                p
+                    code { $limit: 15 },<br/>
+                    code { $skip: 7 }
+        strong 聚合管道的限制
+        p 使用命令<code>aggregate</code>的聚合操作存在以下两个限制：
+        ul
+            li <strong><small>结果集大小限制</small></strong>&emsp;
+                p 如果<code>aggregate</code>命令以单个文档的形式返回聚合结果，
+                    | 并且聚合结果的大小超过<code>BSON Document Size（16M）</code>，则命令会产生异常。为了避免上述异常的产生，
+                    | 确保将聚合结果转储在一个集合中，这样结果集的大小不再受限。
+                p 版本2.6发生改变：命令<code>aggregate</code>可以以指针形式返回聚合结果，或者将聚合结果转储在一个集合中，此时结果集不受大小的限制。
+                    | <code>db.collection.aggregate()</code>返回一个指向结果集的指针，结果集可以是任意大小。
+            li <strong><small>内存限制</small></strong>&emsp;
+                p 版本2.6发生改变。
+                p 聚合管道的处理阶段最多可以使用100M的内存。如果处理阶段使用的内存超过该限制，则MongoDB生成一个错误。为了处理大量数据，
+                    | 可以使用<code>allowDiskUse</code>选项，该选项允许处理阶段将结果暂存在临时文件中。
+        strong 聚合管道和分片集合
+        p 聚合管道支持分片集合的聚合操作。
+        p
+            strong
+                small 行为
+        p 版本2.6发生改变。
+        p 当对分片集合进行聚合操作时，聚合管道被分成两部分。第一部分在各个分片上执行，或者，如果<code>$match</code>过滤掉部分分片，
+            | 则该部分在匹配的分片上执行。第二部分由剩下的管道阶段组成，并且是在主分片上执行。主分片将获取到的第一部分的结果指针整合，
+            | 然后在这些结果集上执行剩余操作。最后，主分片将最终的聚合结果转到<code>mongos</code>。在先前的版本中，
+            | 第二部分可能在<code>mongos</code>上执行。
+        p
+            strong
+                small 优化
+        p 当将聚合管道分为两部分后，考虑到优化，管道会尽量确保每个分片尽量执行分开的各个处理阶段。
+        p 为了查看管道时如何别分离的，可以在<code>db.collection.aggregate()</code>方法上加上<code>explain</code>选项。
+        p 优化策略在MongoDB的不同版本中可能有有所改变。
+        strong Map-Reduce和分片集合
+        p Map-Reduce支持分片集合的聚合操作，同时map-reduce的结果也可能是分片集合。
+        ul
+            li <strong><small>输入分片集合</small></strong>
+                p 当在分片集合上执行map-reduce聚合操作时，<code>mongos</code>会自动将map-reduce任务并发的分发到每个分片。
+                    | 不需要特殊的选项，<code>mongos</code>会等待知道所有分片的任务完成。
+            li <strong><small>输出分片集合</small></strong>
+                p 版本2.2发生了改变。
+                p 如果<code>mapReduce</code>的<code>out</code>字段是值<code>shared</code>。MongoDB使用<code>_id</code>字段作为分片键，
+                    | 将结果集合进行分片。
+                p 为了输出一个分片集合：
+                    ul
+                        li 如果输出的集合不存在，MongoDB创建该集合，并以<code>_id</code>字段作为分片键。
+                        li 对于一个新的或者空白分片集合，MongoDB使用map-reduce操作第一阶段的结果创建分片的初始块。
+                        li <code>mongos</code>并发的将一个map-reduce后置处理程序分发到持有块的分片中。
+        strong Map-Reduce的并发
+        p map-reduce操作由很多任务组成，包括：从输入集合中读取数据，执行map函数，执行reduce函数，在处理过程中写临时集合，将结果写入输出集合。
+        p 在这些操作中，map-reduce持有以下锁：
+            ul
+                li 在读阶段持有读锁。每100个文档一个。
+                li 向临时集合写数据时持有写锁，每个写操作一个写锁。
+                li 如果输出集合不存在，输出集合的创建持有一个写锁。
+                li 如果输出集合存在，输出动作（即：merge、replace、reduce）持有一个写锁。该写锁是一个全局锁，
+                    | 会阻塞<code>mongod</code>示例的所有操作。
+        p 版本2.4发生了改变：在版本2.4中，JavaScript引擎默认使用V8引擎，允许同时执行多个JavaScript操作。在之前的版本中，
+            | JavaScript代码（map、reduce、finalize函数）在单个线程中执行。
+        .alert.alert-danger 后置处理程序持有的写锁导致最终的结果集合的创建看起来是原子性的。但是，输出动作<code>merge、reduce</code>
+            | 可能需要耗时几分钟。对于<code>merge、reduce</code>，<code>nonAtomic</code>标识默认是可用的，
+            | 该标识在写每个输入文档动作之间释放了写锁。

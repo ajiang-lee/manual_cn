@@ -9,3 +9,42 @@ block content
                 a(href='/mongoDB/aggregation') 聚合
             li.active 示例
         h3 7.3&emsp;示例
+        p 本节展示了若干使用MongoDB提供的聚合操作执行聚合操作的示例。
+        ul
+            li
+                a(href='#section731') 7.3.1&emsp;使用邮编示例数据进行聚合操作
+            li
+                a(href='#section732') 7.3.2&emsp;使用用户爱好示例数据进行聚合操作
+            li
+                a(href='#section733') 7.3.3&emsp;Map-Reduce示例程序
+            li
+                a(href='#section734') 7.3.4&emsp;增量Map-Reduce
+            li
+                a(href='#section735') 7.3.5&emsp;Map函数的问题解决
+            li
+                a(href='#section736') 7.3.6&emsp;Reduce函数的问题解决
+        h4#section731 7.3.1&emsp;使用邮编示例数据进行聚合操作
+        p 本示例程序使用的集合为<code>zipcode</code>，该集合的模拟数据可以从<a href='/statics/zipcode.json' target='_blank'>zipcode.json</a>获取，
+            | 使用<code>mongoimport</code>命令将<code>zipcode.json</code>模拟数据导入到指定的数据库。
+        .alert.alert-info
+            code mongoimport --host 127.0.0.1 --port 27017 --db manual --collection zipcode --file d:/zipcode.json
+            p 上述命令将D盘下的zipcode.json文件导入到主机127.0.0.1端口27017下的mongod实例中manual数据库的zipcode集合中。
+            p.text-center
+                img(src='/images/mongoDB/chapter_07/7.4.png')
+        strong 数据模型
+        p 集合<code>zipcode</code>中的文档具有以下结构：
+        p
+            code {<br/>
+            code.two '_id': '10280',<br/>
+            code.two 'city': 'NEW YORK',<br/>
+            code.two 'state': 'NY',<br/>
+            code.two 'pop': 5574,<br/>
+            code.two 'loc':[-74.016323, 40.710537]<br/>
+            code }
+        p 各字段的解析：
+            ul
+                li <strong>_id</strong>&emsp;字符串类型，标识集合中唯一一条邮编记录
+                li <strong>city</strong>&emsp;字符串类型，标识城市名称。每个城市可能拥有多个邮编
+                li <strong>state</strong>&emsp;字符串类型，城市的简写
+                li <strong>pop</strong>&emsp;整数，城市的人口总量
+                li <strong>loc</strong>&emsp;数字数组，该城市的经纬度坐标对
