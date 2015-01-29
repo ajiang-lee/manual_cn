@@ -43,8 +43,611 @@ block content
             code }
         p 各字段的解析：
             ul
-                li <strong>_id</strong>&emsp;字符串类型，标识集合中唯一一条邮编记录
+                li <strong>_id</strong>&emsp;字符串类型，邮编（同时也是集合文档的主键标识）
                 li <strong>city</strong>&emsp;字符串类型，标识城市名称。每个城市可能拥有多个邮编
-                li <strong>state</strong>&emsp;字符串类型，城市的简写
+                li <strong>state</strong>&emsp;字符串类型，城市所在州的简写
                 li <strong>pop</strong>&emsp;整数，城市的人口总量
                 li <strong>loc</strong>&emsp;数字数组，该城市的经纬度坐标对
+        p 下文所有示例程序都是在<code>mongo</code> shell中使用<code>aggregate()</code>帮助方法完成的。
+            | <code>aggregate()</code>帮助方法是<code>aggregate</code>命令的包装方法。如果需要在应用程序中使用聚合操作，
+            | 请参考相应的驱动程序说明文档。
+        strong 返回人口总量超过1千万的州
+        p 为了获取人口总量超过1千万的州，使用如下的聚合操作：
+        p
+            code db.zipcode.aggregate(<br/>
+            code.two {$group: {_id: '$state', totalPop: {$sum: '$pop'}}},<br/>
+            code.two {$match: {totalPop: {$gte: 10*1000*1000}}}<br/>
+            code );
+        p 上例的聚合操作使用辅助方法<code>aggregate()</code>处理集合<code>zipcode</code>中的所有文档。
+            | <code>aggregate()</code>链接了一系列的管道操作，这些管道操作定义了如何进行聚合操作。
+        p 在上例中，集合<code>zipcode</code>的所有文档作为管道的输入数据，这些输入数据在管道中需要经历以下处理步骤：
+            ul
+                li <code>$group</code>操作符按州名对集合文档进行分组，并为每个州生成一个新文档。生成的新文档包含两个字段：
+                    | <code>_id、totalPop</code>。其中<code>_id</code>字段代表州名，<code>totalPop</code>是一个计算结果字段，
+                    | 该字段使用<code>$sum</code>操作计算每个州的人口总数，即：计算每个文档<code>pop</code>字段的和。生成的新文档的结构如下：
+                    p
+                        code {<br/>
+                        code.two "_id" : "AK",<br/>
+                        code.two "totalPop" : 550043<br/>
+                        code }
+                li <code>$match</code>操作符过滤生成的文档，只保留<code>totalPop</code>字段的值大于等于1千万的文档。
+                    | <code>$match</code>操作符并不更新文档结构，拥有和<code>$group</code>生成的新文档一样的文档结构。
+        p 上述示例程序和以下SQL语句的效果等同：
+        p
+            code SELECT state, SUM(pop) totalPop FROM zipcode GROUP BY state HAVING totalPop >= 10*1000*1000
+        strong 返回州的城市平均人口量
+        p 为了获得每个州的城市平均人口数，可以使用如下聚合操作：
+        p
+            code db.zipcode.aggregate([<br/>
+            code.two {$group: {_id: {state: '$state', city: '$city'}, pop: {$sum: '$pop'}}},<br/>
+            code.two {$group: {_id: '$_id.state', avgCityPop: {$avg: '$pop'}}}<br/>
+            code ])
+        p 聚合操作使用<code>aggregate()</code>辅助方法处理<code>zipcode</code>集合中的所有文档。
+            | <code>aggregate()</code>链接了一系列的管道处理阶段，用于处理集合文档。
+        p 在示例程序中，集合文档需要通过以下处理阶段：
+            ul
+                li 第一个<code>$group</code>收集集合中的所有文档，并为每个<code>state、city</code>的组合体创建一个新文档。
+                    | 每个城市可以拥有多个邮编，所以第一步需要得到每个城市的人口总量。在该阶段处理完成后，生成的新文档具有如下结构：
+                    p
+                        code {<br/>
+                        code.two "_id" : {<br/>
+                        code.three "state" : "CO",<br/>
+                        code.three "city" : "EDGEWATER"<br/>
+                        code.two },<br/>
+                        code.two "pop" : 13154<br/>
+                        code }
+                li 第二个<code>$group</code>在第一步的基础上，计算得出每个州的城市平均人口量。最终的结果具有以下结构：
+                    p
+                        code {<br/>
+                        code.two "_id" : "MN",<br/>
+                        code.two "avgCityPop" : 5335<br/>
+                        code }
+        strong 返回每个州的人口最多和最少的城市
+        p 为了得到每个州人口最多和最少的城市，可以使用如下聚合操作：
+        p
+            code db.zipcode.aggregate([<br/>
+            code.two {$group: {_id: {state: '$state', city: '$city'}, pop: {$sum: '$pop;}}},<br/>
+            code.two {$sort: {pop: 1}},<br/>
+            code.two {$group: {_id: '$_id.state', biggestCity: {$last: '$_id.city'}, biggestPop: {$last: '$pop'}, smallestCity: {$first: '$_id.city'}, smallestPop: {$first: '$pop'}}},<br/>
+            code.two {$project: {_id: 0, state: '$_id', biggestCity: {name: '$biggestCity', pop: '$biggestPop'}, smallestCity: {name: '$smallestCity', pop: '$smallestPop'}}}<br/>
+            code ])
+        p 聚合操作使用<code>aggregate()</code>辅助方法处理<code>zipcode</code>集合中的所有文档。
+            | <code>aggregate()</code>链接了一系列的管道处理阶段，用于处理集合文档。
+        p 在示例程序中，集合文档需要通过以下处理阶段：
+            ul
+                li  第一个<code>$group</code>收集集合中的所有文档，并为每个<code>state、city</code>的组合体创建一个新文档。
+                    | 每个城市可以拥有多个邮编，所以第一步需要得到每个城市的人口总量。在该阶段处理完成后，生成的新文档具有如下结构：
+                    p
+                        code {<br/>
+                        code.two "_id" : {<br/>
+                        code.three "state" : "CO",<br/>
+                        code.three "city" : "EDGEWATER"<br/>
+                        code.two },<br/>
+                        code.two "pop" : 13154<br/>
+                        code }
+                li  <code>$sort</code>操作按照上步结果集字段<code>pop</code>的值从小打到的顺序排序。
+                li 第二个<code>$group</code>对排序结果集按照字段<code>state</code>分组，获取分组结果中的最大最小值。
+                    p
+                        code {<br/>
+                        code.two "_id" : "WA",<br/>
+                        code.two "biggestCity" : "SEATTLE",<br/>
+                        code.two "biggestPop" : 520096,<br/>
+                        code.two "smallestCity" : "BENGE",<br/>
+                        code.two "smallestPop" : 2<br/>
+                        code }
+                li 最后的<code>$project</code>操作调整结果集的返回结构：
+                    p
+                        code {<br/>
+                        code.two "state" : "RI",<br/>
+                        code.two "biggestCity" : {<br/>
+                        code.three "name" : "CRANSTON",<br/>
+                        code.three "pop" : 176404<br/>
+                        code.two },<br/>
+                        code.two "smallestCity" : {<br/>
+                        code.three "name" : "CLAYVILLE",<br/>
+                        code.three "pop" : 45<br/>
+                        code.two }<br/>
+                        code }
+        h4#section732 7.3.2&emsp;使用用户爱好示例数据进行聚合操作
+        strong 数据模型
+        p 假设数据库集合<code>users</code>中存储了某个体育俱乐部会员的信息，包括会员姓名（唯一标识）、入会时间、爱好的体育项目，结构如下：
+        p
+            code {<br/>
+            code.two _id : "jane",<br/>
+            code.two joined : ISODate("2011-03-02"),<br/>
+            code.two likes : ["golf", "racquetball"]<br/>
+            code }<br/>
+            code {<br/>
+            code.two _id : "joe",<br/>
+            code.two joined : ISODate("2012-07-02"),<br/>
+            code.two likes : ["tennis", "golf", "swimming"]<br/>
+            code }
+        strong 格式化数据，并对数据排序
+        p 下列聚合操作按照字母表的顺序并以大写形式返回会员的姓名。下列聚合操作只会返回会员的姓名：
+        p
+            code db.users.aggregate([<br/>
+            code.two {$project: {name: {$toUpper: '$_id'}, _id: 0}},<br/>
+            code.two {$sort: {name: 1}}<br/>
+            code ])
+        p 集合<code>users</code>中的所有文档都需要经过如下处理阶段：
+            ul
+                li <code>$project</code>操作
+                    ul
+                        li 创建<code>name</code>新字段
+                        li 使用<code>$toUpper</code>操作符将<code>_id</code>字段的值转换为大写，之后<code>$project</code>将转换后的值赋值给新字段<code>name</code>。
+                        li 忽略<code>_id</code>字段，<code>$project</code>默认返回该字段。
+                li 按照<code>name</code>字段排序
+        p 最终的返回结果具有如下格式：
+        p
+            code {<br/>
+            code.two "name" : "JANE"<br/>
+            code },<br/>
+            code {<br/>
+            code.two "name" : "JILL"<br/>
+            code },<br/>
+            code {<br/>
+            code.two "name" : "JOE"<br/>
+            code }
+        strong 按照会员入会时间所在月份返回会员姓名
+        p 如下聚合操作按照会员入会时间所在月份返回会员姓名。可以使用该聚合操作获得会员的续约时间。
+        p
+            code db.users.aggregate([<br/>
+            code.two {$project: {month_joined: {$month: '$joined'}, name: '$_id', _id: 0}},<br/>
+            code.two {$sort: {month_joined: 1}}<br/>
+            code ])
+        p   集合<code>users</code>中的所有文档都需要经过如下处理阶段：
+            ul
+                li <code>$project</code>操作
+                    ul
+                        li 创建新字段<code>month_joined、name</code>
+                        li 忽略<code>_id</code>字段，<code>aggregate()</code>默认返回该字段
+                li <code>$month</code>操作符返回字段<code>joined</code>的日期值的月份信息，然后将该月份赋值给新字段<code>month_joined</code>
+                li <code>$sort</code>操作符按照字段<code>month_joined</code>排序
+        p 最终的返回结果具有如下格式：
+        p
+            code {<br/>
+            code.two "month_joined" : 1,<br/>
+            code.two "name" : "ruth"<br/>
+            code },<br/>
+            code {<br/>
+            code.two "month_joined" : 1,<br/>
+            code.two "name" : "harold"<br/>
+            code },<br/>
+            code {<br/>
+            code.two "month_joined" : 1,<br/>
+            code.two "name" : "kate"<br/>
+            code }<br/>
+            code {<br/>
+            code.two "month_joined" : 2,<br/>
+            code.two "name" : "jill"<br/>
+            code }
+        strong 返回每个月入会的会员总数
+        p 如下聚合操作返回每个月入会的会员总数，可以根据聚合结果为俱乐部指定相应的营销策略。
+        p
+            code db.users.aggregate([<br/>
+            code.two {$project: {month_joined: {$month: '$joined'}}},<br/>
+            code.two {$group: {_id: {month_joined: '$month_joined'}, number: {$sum: 1}}},<br/>
+            code.two {$sort: {'$_id.month_joined': 1}}
+            code ])
+        p   集合<code>users</code>中的所有文档都需要经过如下处理阶段：
+            ul
+                li <code>$project</code>操作创建了一个新字段<code>month_joined</code>
+                li <code>$month</code>操作符返回字段<code>joined</code>的日期值的月份信息，然后将该月份赋值给新字段<code>month_joined</code>
+                li <code>$group</code>操作符按照字段<code>month_joined</code>分组会员，对于每个<code>month_joned</code>值，计算会员的总数。
+                    | 简单的讲，为每个<code>month_joined</code>值创建一个“per_month”文档，该文档具有以下两个字段：
+                    ul
+                        li <strong>_id</strong>&emsp;该字段包含一个嵌套文档，嵌套文档包含<code>month_joined</code>字段
+                        li <strong>number</strong>&emsp;该字段是由<code>$sum</code>操作符生成的，累加每个月份的会员数目
+                li <code>$sort</code>操作符按照字段<code>month_joined</code>排序
+        p 最终的返回结果具有如下格式：
+        p
+            code {<br/>
+            code.two "_id" : {<br/>
+            code.three "month_joined" : 1<br/>
+            code.two },<br/>
+            code.two "number" : 3<br/>
+            code },<br/>
+            code {<br/>
+            code.two "_id" : {<br/>
+            code.three "month_joined" : 2<br/>
+            code.two },<br/>
+            code.two "number" : 9<br/>
+            code }
+        strong 返回最受欢迎的5个体育项目
+        p 以下聚合操作返回最受欢迎的5个体育项目，可以利用聚合结果规划俱乐部将来的项目安排：
+        p
+            code db.users.aggregate([<br/>
+            code.two {$unwind: '$likes'},<br/>
+            code.two {$group: {_id: '$likes', number: {$sum: 1}}},<br/>
+            code.two {$sort: {number: -1}},<br/>
+            code.two {$limit: 5}<br/>
+            code ])
+        p   集合<code>users</code>中的所有文档都需要经过如下处理阶段：
+            ul
+                li <code>$unwind</code>操作符为<code>likes</code>字段的每个数组元素创建一个新文档
+                    .panel.panel-default
+                        .panel-heading $unwind示例
+                        .panel-body
+                            p 假设集合<code>users</code>中存在如下文档：
+                            p
+                                code {<br/>
+                                code.two _id : "jane",<br/>
+                                code.two joined : ISODate("2011-03-02"),<br/>
+                                code.two likes : ["golf", "racquetball"]<br/>
+                                code }
+                            p 则<code>$unwind</code>操作符会创建如下文档：
+                            p
+                                code {<br/>
+                                code.two _id : "jane",<br/>
+                                code.two joined : ISODate("2011-03-02"),<br/>
+                                code.two likes : "golf"<br/>
+                                code }<br/>
+                                code {<br/>
+                                code.two _id : "jane",<br/>
+                                code.two joined : ISODate("2011-03-02"),<br/>
+                                code.two likes : "racquetball"<br/>
+                                code }
+                li <code>$group</code>操作符按照字段<code>likes</code>分组会员，对于每个<code>likes</code>值，计算会员的总数。
+                    | 简单的讲，为每个<code>likes</code>值创建一个文档，该文档具有以下两个字段：
+                    ul
+                        li <strong>_id</strong>&emsp;该字段包含<code>likes</code>字段的值
+                        li <strong>number</strong>&emsp;该字段是由<code>$sum</code>操作符生成的，累加每个体育项目的会员数目
+                li <code>$sort</code>操作符按照字段<code>number</code>倒序排序
+                li <code>$limit</code>操作符限制返回前5条记录
+        p 最终的返回结果具有如下格式：
+        p
+            code {<br/>
+            code.two "_id" : "golf",<br/>
+            code.two "number" : 33<br/>
+            code },<br/>
+            code {<br/>
+            code.two "_id" : "racquetball",<br/>
+            code.two "number" : 31<br/>
+            code },<br/>
+            code {<br/>
+            code.two "_id" : "swimming",<br/>
+            code.two "number" : 24<br/>
+            code },<br/>
+            code {<br/>
+            code.two "_id" : "handball",<br/>
+            code.two "number" : 19<br/>
+            code },<br/>
+            code {<br/>
+            code.two "_id" : "tennis",<br/>
+            code.two "number" : 18<br/>
+            code }
+        h4#section733 7.3.3&emsp;Map-Reduce示例程序
+        p 在<code>mongo</code> shell中，方法<code>db.collection.mapReduce()</code>是命令<code>mapReduce</code>的包装方法。
+        p 假设集合<code>orders</code>中文档具有以下结构：
+        p
+            code {<br/>
+            code.two _id: ObjectId("50a8240b927d5d8b5891743c"),<br/>
+            code.two cust_id: "abc123",<br/>
+            code.two ord_date: new Date("Oct 04, 2012"),<br/>
+            code.two status: 'A',<br/>
+            code.two price: 25,<br/>
+            code.two items: [ <br/>
+            code.three { sku: "mmm", qty: 5, price: 2.5 },<br/>
+            code.three { sku: "nnn", qty: 5, price: 2.5 } <br/>
+            code.two ]<br/>
+            code }
+        strong 返回每个顾客的消费总金额
+        p 使用map-reduce在集合<code>orders</code>中执行聚合操作，以获取每个顾客的消费总金额，即：按照<code>cust_id</code>分组，
+            | 然后计算每组内<code>price</code>的和。
+        ol
+            li 定义用于处理输入文档的map函数
+                ul
+                    li 在map函数中，<code>this</code>指向map-reduce当前正在处理的文档
+                    li map函数将<code>price</code>关联到每个<code>cust_id</code>，并生成<code>cust_id、price</code>对
+                code var mapFunction1 = function(){<br/>
+                code.two emit(this.cust_id, this.price);<br/>
+                code }
+            li 定义对应的reduce函数，该函数接收两个参数：
+                ul
+                    li <strong>keyCustId</strong>&emsp;对应map函数emit的第一个参数<code>this.cust_id</code>
+                    li <strong>valuesPrices</strong>&emsp;对应map函数emit的第二个参数<code>this.price</code>，该参数可能是数组
+                p reduce函数将数组<code>valuesPrices</code>的元素执行相加，然后返回和。
+                code var reduceFuntion1 = function(keyCustId, valuesPrices) {<br/>
+                code.two return Array.sum(valuesPrices);<br/>
+                code }
+            li 在集合<code>orders</code>上执行map-reduce操作：
+                p
+                    code db.orders.mapReduce(mapFunction1, reduceFunction1, {out: 'map_reduce_example'});
+                p 上述操作会将聚合结果写入集合<code>map_reduce_example</code>中，如果该集合已存在，则聚合操作会使用新结果覆盖原来的集合。
+        strong 计算每个商品的总订单量、总购买量，以及每个订单的平均购买量
+        p 在该示例中，需要对下单日期大于2012-01-01的订单进行聚合操作。聚合操作按照字段<code>item.sku</code>分组，计算订单总量，
+            | 以及对于每个<code>sku</code>的购买总数量，最后，聚合操作还计算了每个<code>sku</code>每个订单的平均购买量。
+        ol
+            li 定于用于处理输入文档的map函数：
+                ul
+                    li 在map函数中，<code>this</code>指向map-reduce当前正在处理的文档
+                    li 对于<code>orders</code>集合中每个文档的<code>items</code>字段，map函数将一个新对象<code>value</code>关联到<code>sku</code>，
+                        | 该新对象包含值为1的字段<code>count</code>，以及对应的<code>qty</code>字段的值，最后返回生成的<code>sku、value</code>对
+                p
+                    code var mapFunction2 = function() {<br/>
+                    code.two for (var idx = 0; idx < this.items.length; idx++) {<br/>
+                    code.three var key = this.items[idx].sku;<br/>
+                    code.three var value = {count: 1, qty: this.items[idx].qty};<br/>
+                    code.three emit(key, value);<br/>
+                    code.two }<br/>
+                    code };
+            li 定义对应的reduce函数，该函数接收参数<code>keySKU、countObjVals</code>：
+                ul
+                    li <code>countObjVals</code>是一个数组，数组元素由map函数生成
+                    li reduce函数将<code>countObjVals</code>数组转换为单个对象<code>reducedValue</code>
+                    li <code>reducedValue</code>对象中的<code>count</code>字段代表商品的订单总数，<code>qty</code>代表商品的总购买量
+                p
+                    code var reduceFunction2 = function(keySKU, countObjVals) {<br/>
+                    code.two reducedValue = {count: 0, qty: 0};<br/>
+                    code.two for (var idx = 0; idx < countObjVals.length; idx++) {<br/>
+                    code.three reducedValue.count += countObjVals[idx].count;<br/>
+                    code.three reducedValue.qty += countObjVals[idx].qty;<br/>
+                    code.two }<br/>
+                    code.two return reducedValue;<br/>
+                    code }
+            li 定义<em>finalize</em>函数，改变最终的结算结果，用于计算每个商品的每个订单的平均购买量：
+                p
+                    code var finalizeFunction2 = function(key, reducedValue) {<br/>
+                    code.two reducedValue.avg = reducedValue.qty / reducedValue.count;<br/>
+                    code.two return reducedValue;<br/>
+                    code }
+            li 执行mapReduce方法：
+                p
+                    code db.orders.mapReduce(<br/>
+                    code.two mapFunction2,<br/>
+                    code.two reduceFunction2,<br/>
+                    code.two {<br/>
+                    code.three out: {merge: 'map_reduce_exapmle'},<br/>
+                    code.three query: {ord_date: {$gt: new Date('01/01/2012')}},<br/>
+                    code.three finalize: finalizeFunction2<br/>
+                    code.two }<br/>
+                    code );
+                p <code>query</code>用于过滤集合文档，<code>out</code>将聚合结果输入到集合<code>map_reduce_example</code>中，
+                    | 如果该集合存在，则将聚合结果合并到已有集合中。
+        h4#section734 7.3.4&emsp;增量Map-Reduce
+        p Map-reduce操作可以执行复杂的聚合任务。可以通过Mongod提供的<code>mapReduce</code>命令，以及在<code>mongo</code> shell中的
+            | <code>db.collection.mapReduce()</code>包装方法执行聚合操作。
+        p 如果map-reduce的数据集是持续增长的，可能需要执行一个增量map-reduce操作，而不是每次都是针对完整数据集进行聚合操作。
+        p 执行增量map-reduce需要如下操作：
+            ul
+                li 在当前集合上执行一个map-reduce计划任务，并且将聚合结果输入到一个单独的集合中
+                li 如果存在后续数据需要处理，则执行带有如下选项的map-reduce计划任务：
+                    ul
+                        li 使用<code>query</code>选项指定新增文档
+                        li 使用<code>out</code>选项将结果合并到已存在的结果集合中
+        p 如下所示，每天结束时，需要在集合<code>sessions</code>上执行聚合任务。
+        strong 初始化数据
+        p 集合<code>sessions</code>保存了应用的用户会话信息：
+        p
+            code db.sessions.save( { userid: "a", ts: ISODate('2011-11-03 14:17:00'), length: 95 } );<br/>
+            code db.sessions.save( { userid: "b", ts: ISODate('2011-11-03 14:23:00'), length: 110 } );<br/>
+            code db.sessions.save( { userid: "c", ts: ISODate('2011-11-03 15:02:00'), length: 120 } );<br/>
+            code db.sessions.save( { userid: "d", ts: ISODate('2011-11-03 16:45:00'), length: 45 } );<br/>
+            code db.sessions.save( { userid: "a", ts: ISODate('2011-11-04 11:05:00'), length: 105 } );<br/>
+            code db.sessions.save( { userid: "b", ts: ISODate('2011-11-04 13:14:00'), length: 120 } );<br/>
+            code db.sessions.save( { userid: "c", ts: ISODate('2011-11-04 17:00:00'), length: 130 } );<br/>
+            code db.sessions.save( { userid: "d", ts: ISODate('2011-11-04 15:37:00'), length: 65 } );
+        strong 初始化当前集合数据的map-reduce操作
+        ol
+            li 定义map函数
+                p
+                    code var mapFunction = funciton() {<br/>
+                    code.two var key = this.userid;<br/>
+                    code.two var value = {<br/>
+                    code.three userid: this.userid,<br/>
+                    code.three total_time: this.length,<br/>
+                    code.three count: 1, <br/>
+                    code.three avg_time: 0<br/>
+                    code.two };<br/>
+                    code.two emit(key, value);<br/>
+                    code }
+            li 定义reduce函数
+                p
+                    code var reduceFunction = function(key, values) {<br/>
+                    code.two var reduceObject = {userid: key, total_time: 0, count: 0, avg_time: 0};<br/>
+                    code.two values.forEach(function(value) {<br/>
+                    code.three reduceObject.total_time += value.total_time;<br/>
+                    code.three reduceObject.count += value.count;<br/>
+                    code.two });<br/>
+                    code.two return reduceObject;<br/>
+                    code }
+            li 定义finalize函数
+                p
+                    code var finalizeFunction = function(key, reducedValue) {<br/>
+                    code.two if (reducedValue > 0) {<br/>
+                    code.three reducedValue.avg_time = reducedValue.total_time / reducedValue.count;<br/>
+                    coe.two }<br/>
+                    code }
+            li 执行mapReduce方法，将结果写入集合<code>session_stat</code>中：
+                p
+                    code db.sessions.mapReduce(<br/>
+                    code.two mapFunciton,<br/>
+                    code.two reduceFunction,<br/>
+                    code.two {<br/>
+                    code.three out: 'session_stat',<br/>
+                    code.three finalize: finalizeFunction<br/>
+                    code.two }<br/>
+                    code )
+        strong 执行后续的聚合任务
+        p 随着时间的推移，集合<code>sessions</code>的数据持续增长，例如增加了2011-11-05的会话信息：
+        p
+            code db.sessions.save( { userid: "a", ts: ISODate('2011-11-05 14:17:00'), length: 100 } );<br/>
+            code db.sessions.save( { userid: "b", ts: ISODate('2011-11-05 14:23:00'), length: 115 } );<br/>
+            code db.sessions.save( { userid: "c", ts: ISODate('2011-11-05 15:02:00'), length: 125 } );<br/>
+            code db.sessions.save( { userid: "d", ts: ISODate('2011-11-05 16:45:00'), length: 55 } );
+        p 为了得到新增数据的聚合结果，可以在每天结束时，执行以下聚合任务：
+        p
+            code db.sessions.mapReduce(<br/>
+                code.two mapFunciton,<br/>
+                code.two reduceFunction,<br/>
+                code.two {<br/>
+                code.three query: {ts: {$gt: ISODate('2011-11-05 00:00:00')}},<br/>
+                code.three out: { reduce: "session_stat" },<br/>
+                code.three finalize: finalizeFunction<br/>
+                code.two }<br/>
+                code )
+        h4#section735 7.3.5&emsp;Map函数的问题解决
+        p map函数是普通的JavaScript函数，用于将文档的值关联到键上，最终将生成的键值对返回，供reduce函数处理。
+        p 为了验证map函数生成的键值对，可以使用自定义的<code>emit</code>函数。
+        .panel.panel-default
+            .panel-heading 实例
+            .panel-body
+                p 假设集合<code>orders</code>中的文档具有如下结构：
+                p
+                    code {<br/>
+                    code.two _id: ObjectId("50a8240b927d5d8b5891743c"),<br/>
+                    code.two cust_id: "abc123",<br/>
+                    code.two ord_date: new Date("Oct 04, 2012"),<br/>
+                    code.two status: 'A',<br/>
+                    code.two price: 250,<br/>
+                    code.two items: [ <br/>
+                    code.three { sku: "mmm", qty: 5, price: 2.5 },<br/>
+                    code.three { sku: "nnn", qty: 5, price: 2.5 } <br/>
+                    code.two ]<br/>
+                    code }
+                ol
+                    li 定义map函数
+                        p
+                            code var map = function() {emit(this.cust_id, this.price);};
+                    li 定义emit函数
+                        p
+                            code var emit = function(key, value) {<br/>
+                            code.two print('emit');<br/>
+                            code.two print("key: " + key + " value: " + tojson(value));<br/>
+                            code };
+                    li 使用单个文档测试map函数
+                        p
+                            code var myDoc = db.orders.findOne( { _id: ObjectId("50a8240b927d5d8b5891743c") } );<br/>
+                            code map.apply(myDoc);
+                    li 验证emit函数
+                        p
+                            code emit<br/>
+                            code key: abc123 value:250
+                    li 使用多个文档测试map函数
+                        p
+                            code var myCursor = db.orders.find( { cust_id: "abc123" } );<br/>
+                            code while (myCursor.hasNext()) {<br/>
+                            code.two var doc = myCursor.next();<br/>
+                            code.two print ("document _id= " + tojson(doc._id));<br/>
+                            code.two map.apply(doc);<br/>
+                            code.two print();<br/>
+                            code }
+                    li 通过打印结果验证map函数生成的键值对是否符合预期
+        h4#section736 7.3.6&emsp;Reduce函数的问题解决
+        p reduce函数是一个普通的JavaScript函数，用于将map产生的键值对浓缩成单个对象。reduce函数必须满足一些前提条件。
+            | 本节内容详述如何确认reduce函数是否满足如下条件：
+            ul
+                li reduce函数产生对象的数据类型必须是和map函数产生的value的数据类型一致
+                li <code>valuesArray</code>数组中元素的顺序不能影响reduce的结果
+                li reduce函数必须是<em>幂等</em>的
+        .panel.panel-default
+            .panel-heading
+                strong 确认输除结果的数据类型
+            .panel-body
+                ol
+                    li 定义reduce函数，接受参数<code>keyCustId、valuesPirces</code>，其中<code>valuesPirces</code>为整形数组
+                        p
+                            code var reduceFunction1 = function(keyCustId, valuesPrices) { return Array.sum(valuesPrices); };
+                    li 定义一个整形数组
+                        p
+                            code var myTestValues = [ 5, 5, 10 ];
+                    li 使用myTestValues调用方法reduceFunction1
+                        p
+                            code reduceFunction1('myKey', myTestValues);
+                    li 确认方法的输出结果
+                        p
+                            code 20
+                    li 定义reduce函数，接受参数<code>keySKU、valuesCountObjects</code>，其中<code>valuesCountObjects</code>为文档数组
+                        p
+                            code var reduceFunction2 = function(keySKU, valuesCountObjects) {<br/>
+                            code.two reducedValue = { count: 0, qty: 0 };<br/>
+                            code.two for (var idx = 0; idx < valuesCountObjects.length; idx++) {<br/>
+                            code.three reducedValue.count += valuesCountObjects[idx].count;<br/>
+                            code.three reducedValue.qty += valuesCountObjects[idx].qty;<br/>
+                            code.two }<br/>
+                            code.two return reducedValue;<br/>
+                            code };
+                    li 定义一个文档数组
+                        p
+                            code var myTestObjects = [ { count: 1, qty: 5 }, { count: 2, qty: 10 }, { count: 3, qty: 15 } ];
+                    li 使用myTestObjects调用方法reduceFunction2
+                        p
+                            code reduceFunction2('myKey', myTestObjects);
+                    li 确认方法的输出结果
+                        p
+                            code { "count" : 6, "qty" : 30 }
+        .panel.panel-default
+            .panel-heading
+                strong 确认映射值的顺序不会影响reduce函数的结果
+            .panel-body
+                p reduce函数接受参数<code>key、values（数组）</code>。可以使用如下步骤测试数组的顺序不会影响reduce函数的计算结果。
+                ol
+                    li 定义两个测试数组
+                        p
+                            code var values1 = [<br/>
+                            code.two { count: 1, qty: 5 },<br/>
+                            code.two { count: 2, qty: 10 },<br/>
+                            code.two { count: 3, qty: 15 }<br/>
+                            code ];<br/>
+                            code var values2 = [<br/>
+                            code.two { count: 3, qty: 15 },<br/>
+                            code.two { count: 1, qty: 5 },<br/>
+                            code.two { count: 2, qty: 10 }<br/>
+                            code ];
+                    li 定义reduce函数
+                        p
+                            code var reduceFunction2 = function(keySKU, valuesCountObjects) {<br/>
+                            code.two reducedValue = { count: 0, qty: 0 };<br/>
+                            code.two for (var idx = 0; idx < valuesCountObjects.length; idx++) {<br/>
+                            code.three reducedValue.count += valuesCountObjects[idx].count;<br/>
+                            code.three reducedValue.qty += valuesCountObjects[idx].qty;<br/>
+                            code.two }<br/>
+                            code.two return reducedValue;<br/>
+                            code };
+                    li 使用测试数据调用reduce函数
+                        p
+                            code reduceFunction2('myKey', values1);<br/>
+                            code reduceFunction2('myKey', values2);
+                    li 上述方法的调用返回相同结果：
+                        p
+                            code { "count" : 6, "qty" : 30 }
+        .panel.panel-default
+            .panel-heading
+                strong 验证reduce函数的幂等性
+            .panel-body
+                p 可以通过以下步骤验证reduce函数是幂等的
+                ol
+                    li 定义reduce函数
+                        p
+                            code var reduceFunction2 = function(keySKU, valuesCountObjects) {<br/>
+                            code.two reducedValue = { count: 0, qty: 0 };<br/>
+                            code.two for (var idx = 0; idx < valuesCountObjects.length; idx++) {<br/>
+                            code.three reducedValue.count += valuesCountObjects[idx].count;<br/>
+                            code.three reducedValue.qty += valuesCountObjects[idx].qty;<br/>
+                            code.two }<br/>
+                            code.two return reducedValue;<br/>
+                            code };
+                    li  定义键
+                        p
+                            code var myKey = 'myKey';
+                    li 定义示例数据，包含对方法reduceFunction2的调用
+                        p
+                            code var valuesIdempotent = [<br/>
+                            code.two { count: 1, qty: 5 },<br/>
+                            code.two { count: 2, qty: 10 },<br/>
+                            code.two reduceFunction2(myKey, [ { count:3, qty: 15 } ] )<br/>
+                            code ];
+                    li 定义常量示例数据
+                        p
+                            code var values1 = [<br/>
+                            code.two { count: 1, qty: 5 },<br/>
+                            code.two { count: 2, qty: 10 },<br/>
+                            code.two { count: 3, qty: 15 }<br/>
+                            code ];
+                    li 使用测试数据调用reduce函数
+                        p
+                            code reduceFunction2(myKey, valuesIdempotent);<br/>
+                            code reduceFunction2(myKey, values1);
+                    li 上述方法的调用返回相同结果：
+                        p
+                            code { "count" : 6, "qty" : 30 }
