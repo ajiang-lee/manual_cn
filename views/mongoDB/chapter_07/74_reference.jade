@@ -9,3 +9,101 @@ block content
                 a(href='/mongoDB/aggregation') 聚合
             li.active 参考资料
         h3 7.4&emsp;参考资料
+        p 本节内容包含以下内容：
+        ul
+            li
+                a(href='#section741') 7.4.1&emsp;聚合管道参考
+            li
+                a(href='#section742') 7.4.2&emsp;聚合命令对比
+            li
+                a(href='#section743') 7.4.3&emsp;SQL和聚合的对比
+            li
+                a(href='#section744') 7.4.4&emsp;聚合接口
+            li
+                a(href='#section745') 7.4.5&emsp;聚合表达式中的变量
+        h4#section741 7.4.1&emsp;聚合管道参考
+        strong 处理阶段
+        p 管道阶段包含在在数组中，输入文档依次通过这些管道阶段。除<code>$out、$geoNear</code>外，其他所有管道阶段可以在一个管道中出现多次。
+            | 使用语法为：<code>db.collection.aggregate([{管道阶段},{管道阶段},...])</code>。
+        table.table.table-bordered
+            thead
+                tr
+                    th(width='20%') 阶段名称
+                    th 描述
+            tbody
+                tr
+                    td
+                        code $geoNear
+                    td 按照距离一个空间坐标点的远近顺序返回文档记录。结合<code>$match、$sort、$limit</code>操作符的功能，
+                        | 输出文档可以包含一个附加的距离字段，以及一个位置标识字段。
+                tr
+                    td
+                        code $group
+                    td 将输入文档按照指定字段进行分组，如果指定了累加表达式，则对分组数据进行相应的累加计算。
+                        | 输出文档只包含分组字段，如果指定了累加表达式，输出文档也包含累加值字段。
+                tr
+                    td
+                        code $limit
+                    td 只将前N（N值由<code>$limit</code>操作符指定）个文档传递到管道的下一个处理阶段。对于每个输入文档，
+                        | 可能有0个（该文档是前N个文档）或1个（该文档不是前N个文档）输出文档。
+                tr
+                    td
+                        code $match
+                    td 过滤输入文档只允许匹配文档进入到下一个处理阶段。<code>$match</code>使用标准的MongoDB查询语句语法。
+                        | 对于每个输入文档，可能有0个（不满足匹配条件）或1个（满足匹配条件）输出文档。
+                tr
+                    td
+                        code $out
+                    td 将聚合操作的结果集写入到一个集合中，如果使用<code>out</code>，则必须是管道的最后一个处理阶段。
+                tr
+                    td
+                        code $project
+                    td 重构上一阶段的结果文档集，比如：添加新字段、删除已有字段。对于每个输入文档，都有对应的输出文档。
+                tr
+                    td
+                        code $redact
+                    td 通过对输入文档的内容添加约束条件重构输入文档，如何添加约束条件由文档本身含有的数据决定。通过和<code>$project、$match</code>操作符的功能结合，
+                        | 可以用来实现字段层级的重构。对于每个输入文档，可能有0个或1个输出文档。
+                tr
+                    td
+                        code $skip
+                    td 跳过前N个文档（N值由<code>$skip</code>操作符指定）将剩余文档原样的传递给管道中的后续处理阶段。对于每个输入文档，
+                        | 可能有0个（该文档不是前N个文档）或1个（该文档是前N个文档）输出文档。
+                tr
+                    td
+                        code $sort
+                    td 根据指定字段对文档重新排序。对于每个输入文档，都有对应的输出文档，发生改变的是文档在结果集中的顺序。
+                tr
+                    td
+                        code $unwind
+                    td 将输入文档数组字段的每个元素解构成单个文档。输出文档中数组字段的值被替换成单个数组元素（即：数据类型由数组转换成非数组）。
+                        | 对于每个输入文档，可能输出N个文档，其中N代表输入文档数组字段的元素个数，如果数组为空，则输出0个文档。
+        strong 表达式
+        p 表达式包括<code>字段路径和系统变量、字面量表达式、对象表达式、操作符表达式</code>，表达式可以嵌套使用。
+        p
+            strong
+                small 字段路径和系统变量
+        p 聚合表达式使用<em>字段路径</em>访问输入文档的字段值。使用<code>$ + 字段名</code>的形式访问输入文档的字段，如果字段是嵌套文档，
+            | 使用点符号（.）访问嵌套文档的字段。例如：<code>$user</code>代表输入文档的<code>user</code>字段，
+            | <code>$user.name</code>代表输入文档的<code>user</code>字段存储的嵌套文档的<code>name</code>字段。
+        p <code>$ + 字段名</code>和<code>$$CURRENT. + 字段名</code>功能相同，其中<code>CURRENT</code>是系统变量，
+            | 该变量在大多数处理阶段中默认指向当前处理文档，除非在特定处理阶段进行说明。<code>CURRENT</code>是rebound。
+        p 除了<code>CURRENT</code>系统变量，在表达式中也可以使用其他系统变量。如果需要使用自定义变量，需要使用<code>$let、$map</code>声明。
+            | 使用<code>$$ + 变量</code>形式使用系统变量和自定义变量。
+        p
+            strong
+                small 字面量表达式
+        p 字面量可是是任意类型。但是，Mongod会将字面量<code>$ + 字符串</code>解析为文档字段路径，将表达式对象中的数字/布尔值解析为投影标记。
+            | 为了避免字面量的解析，请使用<code>$literal</code>表达式。
+        p
+            strong
+                small 对象表达式
+        p 对象表达式遵循以下格式：
+        p
+            code { field: expression, ... }
+        p 如果表达式是数字或布尔值字面量，MongoDB会将该字面量解析为投影标识（即：1或true代表包含该字段）。为了避免上述解析，
+            | 请使用<code>$literal</code>表达式。
+        p
+            strong
+                small 操作符表达式
+        p 
