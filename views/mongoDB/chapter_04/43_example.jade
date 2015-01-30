@@ -231,7 +231,7 @@ block content
         h4#section432 4.3.2&emsp;树形结构建模
         p MongoDB允许使用不同的方法来构建树形结构，以达到对大量层级数据的建模操作。
         p.text-center
-            img(src='/images/mongoDB/chapter_04/4.5.png')
+            img.img-responsive(src='/images/mongoDB/chapter_04/4.5.png')
             br
             small 图4.5 树形结构模拟数据
         h4#section4321 4.3.2.1&emsp;使用父节点关联实现树形结构
@@ -362,7 +362,7 @@ block content
         p <em>嵌套集合</em>以闭环的形式将树形结构连接起来，然后对闭环中的每个节点进行标识。闭环中的每个节点被访问两次：一次在闭环的初始化阶段；
             | 一次在闭环的返回操作中。<em>嵌套集合</em>模式将每个节点保存在单个节点中，并且记录该节点的直接父节点，同时记录节点在闭环中的标识。
         p.text-center
-            img(src='/images/mongoDB/chapter_04/4.10.png')
+            img.img-responsive(src='/images/mongoDB/chapter_04/4.10.png')
             br
             small 图4.6 树形结构的闭环标识
         .panel.panel-default

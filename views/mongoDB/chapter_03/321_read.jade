@@ -34,12 +34,12 @@ block content
         p 对于查询操作，MongoDB提供了<code>db.collection.find()</code>方法，该方法可以指定查询条件和投影，并且放回一个指向匹配文档结果集的指针。
           | 也可以可选的指定查询语句返回的文档数（limit）、忽略哪些文档（skip），以及对结果集排序（order）。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.5.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.5.png')
         p.text-center
             small 图3.5 MongoDB数据库查询操作的构成
         p 上述MongoDB查询语句对应关系数据库的SQL为：
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.6.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.6.png')
         p.text-center
             small 图3.6 SQL SELECT语句的构成
         .panel.panel-default
@@ -62,7 +62,7 @@ block content
         p 对于只需要返回一个文档的<code>find()</code>情况，MongoDB提供了<code>db.collection.findOne()</code>方法。
         strong 查询声明
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.7.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.7.png')
         p.text-center
             small 图3.7 包含一个查询条件和一个排序标识的MongoDB查询语句的执行过程
         p 考虑图3.7中的查询语句，该查询语句指定了一个查询过滤条件和一个排序标识。
@@ -74,7 +74,7 @@ block content
           | 通过投影操作，MongoDB只返回匹配文档的指定字段，这样应用程序可以降低自身的网络流量负担，以及降低了解析成本。
         .alert.alert-danger 除了可以在包含投影中排除<code>_id</code>字段，其他字段不能在包含和排除投影中混用。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.8.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.8.png')
         p.text-center
             small 图3.8 MongoDB查询语句的过滤和投影过程，只返回投影字段给客户端
         p 图3.8中的查询语句包含一个过滤条件和一个投影。
@@ -251,19 +251,19 @@ block content
         p 分片集群允许你以一种几乎对应用透明的方式将一个数据集分散到一个<code>mongod</code>的实例集群中。
         p 对于一个分片集群，应用程序将操作发送到关联到该集群中的多个<code>mongos</code>实例中的一个。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.9.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.9.png')
         p.text-center
             small 图3.9 MongoDB的分片集群构成
         p 相对于单个分片的查询，在分片集群上的读操作更高效。针对分片集群的查询应该包含集合的<em>分片键（shard key）</em>。
           | 当一个查询语句包含分片键时，<code>mongos</code>实例使用从<em>配置数据库（config database）</em>获取的集群元信息将查询分发到对应的分片执行。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.10.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.10.png')
         p.text-center
             small 图3.10 包含分片键的查询
         p 如果查询语句不包含分片键，<code>mongos</code>实例必须将查询分发到集群中的所有分片中执行。这些<em>分散收集（scatter gather）</em>的查询语句不是高效的。
           | 在一个非常大的分片集群中，这种分散收集的查询语句是不切实际的。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.11.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.11.png')
         p.text-center
             small 图3.10 不包含分片键的查询
         strong 副本集的读操作
@@ -276,7 +276,7 @@ block content
             li 用于备份
             li 允许故障转移
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.12.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.12.png')
         p.text-center
             small 图3.10 副本集的读操作（左侧采用默认策略，右侧配置了读取偏好）
         p 从副本集的secondary成员中读取数据不能保证读取的数据就是副本集的primary数据的当前状态，

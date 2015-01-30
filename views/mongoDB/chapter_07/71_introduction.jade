@@ -21,7 +21,7 @@ block content
             | 管道阶段可以使用<code>操作符</code>，比如：计算平均值、连接字符串。
         p 通过在MongoDB中使用本地操作符，管道提供了高效的数据聚合功能，并且是MongoDB中首选的进行数据聚合操作的方法。
         p.text-center
-            img(src='/images/mongoDB/chapter_07/7.1.png')
+            img.img-responsive(src='/images/mongoDB/chapter_07/7.1.png')
             br
             small 图7.1 管道操作示例。上述管道操作拥有<code>$match、$group</code>两个阶段。
         strong Map-Reduce
@@ -34,15 +34,15 @@ block content
         .alert.alert-danger 从MongoDB2.4开始，在map-reduce操作符中一些<code>mongo</code> shell函数和属性不再可用。
             | MongoDB2.4提供了同时执行多个JavaScript函数的功能，在版本2.4之前，JavaScript代码只能在单个线程中执行，在map-reduce中可能引起并发问题。
         p.text-center
-            img(src='/images/mongoDB/chapter_07/7.2.1.png')
-            img(src='/images/mongoDB/chapter_07/7.2.2.png')
+            img.img-responsive(src='/images/mongoDB/chapter_07/7.2.1.png')
+            img.img-responsive(src='/images/mongoDB/chapter_07/7.2.2.png')
             br
             small 图7.2 map-reduce操作符示例
         strong 单一目的的聚合操作符
         p 对于常用的单一目的的聚合操作，MongoDB提供了特定目的的数据库命令。包括：返回匹配文档的总数，返回某个字段值的不同值，针对某个字段对数据进行分组。
             | 所有这些聚合操作都是针对单个集合。虽然这些操作提供了单一目的聚合操作，但是相较于管道和map-reduce，它们缺少灵活性。
         p.text-center
-            img(src='/images/mongoDB/chapter_07/7.3.png')
+            img.img-responsive(src='/images/mongoDB/chapter_07/7.3.png')
             br
             small 图7.3 单一目的的聚合操作示例
         h4#section712 7.1.2&emsp;其他特性行为

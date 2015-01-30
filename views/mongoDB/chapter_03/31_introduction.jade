@@ -14,12 +14,12 @@ block content
           | 其实，MongoDB的文档是BSON文档。BSON是附加了额外类型信息的JSON的二进制表示。在文档中，一个键的值可以是任意BSON数据类型，
           | 可以包含其他文档、数组、文档数组等等数据类型。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.1.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.1.png')
         p.text-center
             small 图3.1 MongoDB的文档结构
         p MongoDB将所有文档保存在集合中,一个集合包含若干共享索引的相关联文档。可以将MongoDB的集合想象成关系数据库中的表结构。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.2.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.2.png')
         p.text-center
             small 图3.2 MongoDB的集合结构
         h4#section311 3.1.1 数据库操作
@@ -37,7 +37,7 @@ block content
         p 为了提高普通查询和更新的性能，MongoDB提供了完整的索引支持。索引以一种高效的数据结构保存了一个集合的部分数据。
           | 大部分索引以有序的方式保存了一个集合中文档的一个或者多个字段的值。索引支持唯一性校验，支持对象的空间坐标表示，支持全文检索。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.3.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.3.png')
         p.text-center
             small 图3.3 包含一个查询条件和一个排序标识的MongoDB查询语句的执行步骤
         strong 副本集的读取偏好（Read Preference）

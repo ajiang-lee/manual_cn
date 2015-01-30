@@ -24,7 +24,7 @@ block content
         p 在MongoDB中，可以使用嵌套文档来体现关联关系。嵌套文档模式违反了数据库的设计范式，但是充分利用了MongoDB数据库丰富的数据类型。
             | 考虑下图：
         p.text-center
-            img(src='/images/mongoDB/chapter_04/4.2.png')
+            img.img-responsive(src='/images/mongoDB/chapter_04/4.2.png')
             br
             small 图4.3&emsp;使用嵌套文档体现关联关系
         p 嵌套文档数据模型允许应用程序在单个文档中存储关联关系，进而使应用程序通过较少的查询、更新语句完成常用操作。
@@ -39,7 +39,7 @@ block content
         strong 符合范式的数据模型
         p 符合范式的关联关系使用如下方式体现：
         p.text-center
-            img(src='/images/mongoDB/chapter_04/4.1.png')
+            img.img-responsive(src='/images/mongoDB/chapter_04/4.1.png')
             br
             small 图4.4：通过关联在文档之间建立关系。文档<code>contact、access</code>中均持有到文档<code>user</code>的关联
         p 通常来讲，当出现以下情况时，考虑使用符合范式的关联关系：

@@ -31,14 +31,14 @@ block content
         p 关联通过在一个文档中保存到另一个文档的关联关系来实现文档之间的关联关系。应用程序可以通过文档中存储的关联关系来获取关联的文档。
             | 通常来讲，这种模式时遵循数据库设计范式的，在关系数据库中这种关联关系的设定非常常见。
         p.text-center
-            img(src='/images/mongoDB/chapter_04/4.1.png')
+            img.img-responsive(src='/images/mongoDB/chapter_04/4.1.png')
             br
             small 图4.1：通过关联在文档之间建立关系。文档<code>contact、access</code>中均持有到文档<code>user</code>的关联
         strong 嵌套文档
         p 嵌套文档通过在单个文档中保存关联文档来体现文档之间的关联关系。在MongoDB中，可以轻松的在一个文档的字段中定义嵌套文档。
             | 这些不符合范式的数据模型（针对关系型数据库而言）允许应用程序通过单个操作获取关联关系的双方，简化了数据库操作。
         p.text-center
-            img(src='/images/mongoDB/chapter_04/4.2.png')
+            img.img-responsive(src='/images/mongoDB/chapter_04/4.2.png')
             br
             small 图4.2：使用嵌套文档标识关联关系
         h4#section412 4.1.2&emsp;写操作的原子性

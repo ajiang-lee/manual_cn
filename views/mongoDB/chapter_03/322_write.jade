@@ -37,12 +37,12 @@ block content
         p 在MongoDB中，<code>db.collection.insert()</code>方法执行向集合添加数据操作。
         p 如下示例展示了MongoDB插入操作的组成部分：
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.13.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.13.png')
         p.text-center
             small 图3.13 MongoDB插入操作的组成部分
         p 和上述MongoDB插入操作等价的关系数据库的Insert语句为：
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.14.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.14.png')
         p.text-center
             small 图3.14 关系数据库Insert SQL语句的组成部分
         .panel.panel-default
@@ -63,12 +63,12 @@ block content
             | 用于指定哪些文档需要更新，该方法也可以指定其他选项，用于影响更新操作的行为，例如选项<code>multi</code>用于指定更新多个文档。
         p 如下示例展示了MongoDB更新操作的组成部分：
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.15.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.15.png')
         p.text-center
             small 图3.15 MongoDB更新操作的组成部分
         p 和上述MongoDB更新操作等价的关系数据库的Update语句为：
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.16.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.16.png')
         p.text-center
             small 图3.16 关系数据库Update SQL语句的组成部分
         .panel.panel-default
@@ -94,12 +94,12 @@ block content
         p 在MongoDB中，方法<code>db.collection.remove()</code>从一个集合中删除文档。<code>db.collection.remove()</code>方法可以通过添加过滤条件指定需要删除哪些文档。
         p 如下示例展示了MongoDB删除操作的组成部分：
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.17.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.17.png')
         p.text-center
             small 图3.17 MongoDB删除操作的组成部分
         p 和上述MongoDB删除操作等价的关系数据库的Delete语句为：
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.18.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.18.png')
         p.text-center
             small 图3.18 关系数据库Delete SQL语句的组成部分
         .panel.panel-default
@@ -146,7 +146,7 @@ block content
             | <em>Unacknowledged</em>类似于<em>忽略错误（errors ignored）</em>；但是，驱动程序可能会尝试接受并且处理网络异常，
             | 驱动程序的这种探测网络异常的能力取决于操作系统本身的网络配置。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.19.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.19.png')
             br
             small 图3.19 写关注等级为<code>unacknowledged</code>时，针对<code>mongod</code>的写操作，
                 | 客户端不需要等待任何回执消息。
@@ -154,7 +154,7 @@ block content
             | <code>mongod</code>实例需要确认写操作的回执消息。该等级的写关注允许客户端捕获网络异常、主键重复等其他异常。
         p 版本2.6新特性：在<code>mongo</code> shell中，MongoDB默认使用<code>acknowledged</code>等级的写关注。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.20.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.20.png')
             br
             small 图3.20 写关注等级为<code>acknowledged</code>时，针对<code>mongod</code>的写操作，
                 | 客户端需要等待实例的失败或成功回执消息。
@@ -164,7 +164,7 @@ block content
         p 对于<em>journaled</em>等级的写关注，写操作必须等待下一次的日志提交才能返回。为了提高日志提交的频率，可以通过参数<code>commitIntervalMs</code>进行修改。
         .alert.alert-danger 在一个副本集中，如果配置了<code>journaled</code>等级的写关注，则只需要副本集中的主成员（primary）完成日志提交即可。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.21.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.21.png')
             br
             small 图3.21 写关注等级为<code>journaled</code>时，针对<code>mongod</code>的写操作，
             | 在提交数据到日志后，<code>mongod</code>实例才返回回执消息。
@@ -172,7 +172,7 @@ block content
             | 只需要确认副本集中主成员返回回执消息即可。
         p 对于<em>replica acknowledged</em>等级的写关注，可以确保写操作已传播到副本集中的其他成员中。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.22.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.22.png')
             br
             small 图3.22 对副本集写时，写关注的等级为<code>w:2</code>，或者说，针对主成员并且至少一个二级成员。
         h4#section3223 3.2.2.3 分布式写操作
@@ -180,7 +180,7 @@ block content
         p 对于一个分片集群中的分片集合，<code>mongos</code>将来自应用程序的写操作分发到集群中对应的分片。
             | <code>mongos</code>使用来自<code>config database</code>中存储的集群元信息完成上述分发操作。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.23.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.23.png')
             br
             small 图3.23 MongoDB的分片集群
         p MongoDB依据<em>分片键（shard key）</em>的值将一个分片集合的数据分割成不同的区间，之后，MongoDB将这些不同区间的数据分别分发到对应的分片中。
@@ -189,7 +189,7 @@ block content
             | 影响多个文档的更新操作如果包含<em>分片键</em>，在某些情境中可以提高性能，但是更新操作可能被传播到所有分片中。
         p 如果随着插入操作的进行，分片键的值发生增加或者减少，所有的插入操作被分配到单个分片中，此时，该分片成为整个副本集的热点，可能成为性能故障点。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.24.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.24.png')
             br
             small 图3.24 分片键的值被分散到多个区间中
         strong 副本集的写操作
@@ -197,7 +197,7 @@ block content
             | 并将该写操作记录到自身实例的操作日志中（oplog）。<code>oplog</code>是一个针对数据集操作记录的可复写序列。
             | 副本集的次成员（secondary）连续复制主成员的<code>oplog</code>，并且将这些<code>oplog</code>应用到自身实例，进而实现数据集的复制。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.25.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.25.png')
             br
             small 图3.25 针对副本集的读写操作，默认被定向到主成员
         p 大量的写操作，特别是批量写操作，可能会导致次成员无法高效的将从主成员复制过来的<code>oplog</code>应用到自身实例中，
@@ -207,7 +207,7 @@ block content
             | 来确保每对副本集的其他成员进行100次或1000次写操作必须得到写操作的回执信息，这样可以确保次成员可以赶上主成员的数据状态。
             | 写关注虽然说降低了写操作的速度，但是能够最大程度的使次成员的数据状态赶上主成员的数据状态（即：以时间换取数据一致性）。
         p.text-center
-            img(src='/images/mongoDB/chapter_03/3.26.png')
+            img.img-responsive(src='/images/mongoDB/chapter_03/3.26.png')
             br
             small 图3.26 针对副本集的写操作拥有<code>w:2</code>等级的写关注（即：写操作必须写入主成员，并且该写操作被至少传播到一个次成员后，该写操作才返回）
         h4#section3224 3.2.2.4 写操作的性能
