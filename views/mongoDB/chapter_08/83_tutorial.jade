@@ -1,0 +1,11 @@
+extends ../../layout
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/index') 索引
+            li.active 指导教程
+        h3 8.3&emsp;指导教程

@@ -123,4 +123,37 @@ router.get('/aggregation/reference(/:section)?', function(req, res, next) {
     });
 });
 
+// 第八章：索引 》目录
+router.get('/index', function(req, res, next) {
+    res.render('mongoDB/chapter_08/index');
+});
+
+// 第八章：索引 》8.1：简介
+router.get('/index/introduction(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_08/81_introduction', {
+        section : req.params[0]
+    });
+});
+
+// 第八章：索引 》8.2：相关概念
+router.get('/index/concept(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_08/82_concept', {
+        section : req.params[0]
+    });
+});
+
+// 第八章：索引 》8.3：指导教程
+router.get('/index/tutorial(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_08/83_tutorial', {
+        section : req.params[0]
+    });
+});
+
+// 第八章：索引 》8.4：参考资料
+router.get('/index/reference(/:section)?', function(req, res, next) {
+    res.render('mongoDB/chapter_08/84_reference', {
+        section : req.params[0]
+    });
+});
+
 module.exports = router;
