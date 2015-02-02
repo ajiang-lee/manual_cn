@@ -9,3 +9,194 @@ block content
                 a(href='/mongoDB/index') 索引
             li.active 相关概念
         h3 8.2&emsp;相关概念
+        p 本节内容描述了MongoDB中索引的类型、配置选项、行为特点，并且配有相关示例程序。本节主要包含以下内容：
+        ul
+            li
+                a(href='#section821') 8.2.1&emsp;索引类型
+            li
+                a(href='#section822') 8.2.2&emsp;索引属性
+            li
+                a(href='#section823') 8.2.3&emsp;创建索引
+            li
+                a(href='#section824') 8.2.4&emsp;索引的交叉使用
+        h4#section821 8.2.1&emsp;索引类型
+        p MongoDB提供了不同类型的索引。可以在文档或嵌套文档的任意字段或嵌套字段上创建索引，可以创建<var>单一字段索引</var>，
+            | 或者<var>复合索引</var>，MongoDB同样支持数组字段的索引，称为<var>多键索引</var>，并且为了支持空间坐标数据的高效查询，
+            | MongoDB同样支持<var>空间索引</var>。
+        p 通常来讲，应该为应用的常用查询建立相关索引。使用索引可以降低MongoDB需要遍历的数据总量。
+        p 在<code>mongo</code> shell中，可以使用<code>ensureIndex()</code>方法创建索引。
+        strong 索引的行为特点
+        p MongoDB中的所有索引都是<var>B-tree</var>索引，该种类型的索引可以高效的支持相等、范围匹配的查询。在索引内部，
+            | 索引条目是按照索引字段值的有序存储的。索引条目的有序存储支持高效的范围查询，并且允许MongoDB直接返回有序的结果集，而不必再进行额外的排序操作。
+        p
+            strong
+                small 索引的顺序
+        p MongoDB的索引可以是升序或降序的，也就是说，MongoDB可以双向遍历索引数据。对于单一字段索引，升序和降序是可互换的。
+            | 但是复合索引不是这样的，索引的顺序对结果集的顺序影响很大。
+        p
+            strong
+                small 索引的交叉引用
+        p 对于包含多个查询条件的查询语句，MongoDB可以利用索引的交叉引用特性满足查询语句。
+        p
+            strong
+                small 限制条件
+        p 对于MongoDB的索引，有些限制条件需要考虑，比如：索引键的长度限制、每个集合上的索引数目的限制。
+        strong 索引的类型介绍
+        p 以下内容详细介绍了MongoDB提供的各种索引。
+        p
+            strong
+                small 单一字段索引
+        p MongoDB允许在集合文档的任意字段上创建索引。所有集合中，默认在文档的<code>_id</code>字段上存在一个唯一索引，除此之外，
+            | 为了满足常用查询的需要，应用可以根据具体需要创建自己的索引。
+        p MongoDB的索引支持单个字段和多个组合字段的索引，本小节内容主要介绍单个字段的索引。
+        p
+            strong
+                small 示例
+        .panel.panel-default
+            .panel-heading 单个字段的索引
+            .panel-body
+                p 假设集合<code>friends</code>中文档具有以下结构：
+                p
+                    code {<br/>
+                    code.two '_id': ObjectId(...),<br/>
+                    code.two 'name': 'Alice',<br/>
+                    code.two 'age': 27<br/>
+                    code }
+                p 以下语句在字段<code>name</code>上创建了一个索引：
+                p
+                    code db.friends.ensureIndex({name: 1})
+        p
+            strong
+                small 场景
+        ul
+            li
+                strong <code>_id</code>字段的索引
+                p MongoDB默认为集合文档的<code>_id</code>字段创建一个升序的唯一索引，并且该索引不能被删除。
+                p 可以将<code>_id</code>字段视为集合的主键，每个文档必须包含一个唯一的<code>_id</code>，该字段可以存储任意类型的数据，
+                    | 但是必须保证唯一。默认情况下，<code>_id</code>字段的值为<var>ObjectId</var>，该值在文档进入集合时由驱动程序或<code>mongod</code>实例自动生成。
+                    | 一个<var>ObjectId</var>是一个12字节的唯一值，如果应用程序没有必要生成自己的逐渐，<var>ObjectId</var>很适合作为主键。
+                .alert.alert-danger 在分片群集中，如果没有使用<code>_id</code>字段作为分片建，则应用程序必须确保<code>_id</code>字段值的唯一性。
+                    | 可以通过使用一个自动增长的<var>ObjectId</code>实现。
+                    p 在版本2.2之前，<var>capped</var>集合没有<code>_id</code>字段。在版本2.2以及之后的版本中，
+                        | <var>capped</var>集合必须包含<code>_id</code>字段，除非集合位于<code>local</code>数据库中。
+            li
+                strong 嵌套文档字段的索引
+                p 就像为文档的顶级字段创建索引一样，也可以为嵌套文档字段创建索引。嵌套文档字段上的索引和嵌套文档上的索引是不同的，
+                    | 嵌套文档上的索引包含整个嵌套文档的内容，直到达到索引中能够存储的最大空降。另外，嵌套文档字段上的索引需要使用点符号（.）。
+                .panel.panel-default
+                    .panel-heading 嵌套文档字段索引
+                    .panel.panel-body
+                        p 假设集合<code>people</code>中文档具有以下结构：
+                        p
+                            code {<br/>
+                            code.two '_id': ObjectId(...),<br/>
+                            code.two 'name': 'John Doe',<br/>
+                            code.two 'address': {
+                            code.three 'street': 'Main',<br/>
+                            code.three 'zipcode': '53511',<br/>
+                            code.three 'state': 'WI'<br/>
+                            code.two }<br/>
+                            code }
+                        p 可以使用如下语句在字段<code>address.zipcode</code>上创建索引：
+                        p
+                            code db.people.ensureIndex({'address.zipcode': 1})
+            li
+                strong 嵌套文档上的索引
+                p MongoDB中可以在嵌套文档上直接创建索引。
+                .panel.panel-default
+                    .panel-heading 嵌套文档索引
+                    .panel-body
+                        p 假设集合<code>factories</code>中文档具有以下结构：
+                        p
+                            code {<br/>
+                            code.two '_id': ObjectId(...),<br/>
+                            code.two 'name': 'Giant Factory',<br/>
+                            code.two 'metro': {<br/>
+                            code.three 'city': 'New York',<br/>
+                            code.three 'state': 'NY'<br/>
+                            code.two }<br/>
+                            code }
+                        p 以下语句在嵌套文档<code>metro</code>上创建索引：
+                        p
+                            code db.factories,ensureIndex({metro: 1})
+                        p 以下查询语句可以使用上述语句创建的索引：
+                        p
+                            code db.factories.find({metro: {'city': 'New York', 'state': 'NY'}})
+                        p 在执行嵌套文档的相等匹配时，嵌套文档的字段名和字段顺序都是非常重要的。例如，以下语句无法使用上述语句创建的索引：
+                        p
+                            code db.factories.find({metro: {'state': 'NY', 'city': 'New York'}})
+        p
+            strong
+                small 复合索引
+        p MongoDB支持复合索引，单个索引结构持有关联的多个集合文档字段（MongoDB强制复合索引最多包含31个字段）。下图展示了两个字段上的复合索引：
+        p.text-center
+            img.img-responsive(src='/images/mongoDB/chapter_08/8.8.png')
+            br
+            small 图8.8 字段<code>userid</code>（升序）和<code>score</code>（降序）上的复合索引
+        .panel.panel-default
+            .panel-heading 复合索引
+            .panel-body
+                p 假设集合<code>products</code>中文档具有以下结构：
+                p
+                    code {<br/>
+                    code.two '_id': ObjectId(...),<br/>
+                    code.two 'item': 'Banana',<br/>
+                    code.two 'category': ['food', 'produce', 'grocery'],<br/>
+                    code.two 'location': '4th Street Store',<br/>
+                    code.two 'stock': 4,<br/>
+                    code.two 'type': 'cases',<br/>
+                    code.two 'arrival': Date(...)<br/>
+                    code }
+                p 如果应用程序经常查询<code>item</code>字段，以及字段<code>item、stock</code>，此时，可以在<code>item、stock</code>上创建复合索引，
+                    | 同时满足上述两种查询：
+                p
+                    code db.products.ensureIndex({item: 1, stock: 1})
+        p 复合索引中字段的顺序是非常重要的。在上述示例中，索引首先按照字段<code>item</code>升序排序，对于每个<code>item</code>的值，
+            | 按照<code>stock</code>升序排序。
+        p 除了支持匹配复合索引全部字段的查询，复合索引同样支持匹配复合索引前置字段的查询。
+        ul
+            li
+                strong 排序顺序
+                p 索引存储索引字段时，可以指定是按照升序还是降序存储。对于单个字段的索引，索引字段的顺序无关重要，
+                    | 因为MongoDB可以双向遍历索引。但是对于复合索引，索引字段的顺序决定了是否可以使用复合索引返回有序结果集。
+                p 假设集合<code>events</code>中文档包含<code>username、date</code>字段，对于如下两个查询：
+                p
+                    code db.events.find().sort({username: 1, date: -1})<br/>
+                    code db.events.find().sort({username: -1, date: 1})
+                p 如下索引可以满足上述的排序：
+                p
+                    code db.envents.ensureIndex({username: 1, date: -1})
+                p 但是，如下查询语句不能使用上述索引返回有序数据：
+                p
+                    code db.events.find().sort({username: 1, date: 1})
+            li
+                strong 前置字段
+                p 复合索引除了支持复合索引全部字段的匹配查询，同样支持复合索引前置字段的匹配查询。前置字段指的是在定义索引时，位于前面的字段。
+                    | 例如：对于索引<code>{a: 1, b: 1, c: 1}</code>，<code>{a: 1}</code>和<code>{a: 1, b: 1}</code>都是符合索引的前置。
+                p 假设集合拥有以下两个集合：<code>{a: 1, b: 1}、{a: 1}</code>。如果两个集合没有稀疏选项和唯一属性，则可以舍弃<code>{a: 1}</code>索引，
+                    | 因为针对字段<code>a</code>的查询，可以使用复合索引。
+                .panel.panel-default
+                    .panel-heading 示例
+                    .panel-body
+                        p 假设存在以下索引：
+                        p
+                            code {item: 1, location: 1, stock: 1}
+                        p 如果查询语句包含以下字段，则MongoDB可以使用上述索引：
+                        ul
+                            li <code>item</code>字段
+                            li <code>item、location</code>字段
+                            li <code>item、location、stock</code>字段
+                            li <code>item、stock</code>字段，但是查询语句的效率可能较低
+                        p 如果查询语句只保含以下字段，则MongoDB不能使用上述索引：
+                        ul
+                            li 只有<code>location</code>字段
+                            li 只有<code>stock</code>字段
+                            li 只有<code>location、stock</code>字段
+            li
+                strong 索引的交叉引用
+                p 从版本2.6开始，MongoDB可以利用索引的交叉引用来满足查询。至于是选择复合索引，还是利用索引的交叉引用，
+                    | 却决于系统的设置。
+        p
+            strong
+                small 多键索引
+        p
