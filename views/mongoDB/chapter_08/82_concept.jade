@@ -199,4 +199,126 @@ block content
         p
             strong
                 small 多键索引
+        p 为了索引包含数组数据的字段，MongoDB会为数组的每个元素添加索引条目。这些多键索引可以在查询语句匹配数组元素时被引用。
+            | MongoDB会自动决定是否需要对字段创建多键索引，不需要显式的声明。
+        p 多键索引支持MongoDB中其他索引的所有操作。但是，应用程序可以使用多键索引按照数组元素值的范围匹配文档。
+            | 多键索引支持数组可以包含值（即：字符串、数字）和嵌套文档。
+        p.text-center
+            img.img-responsive(src='/images/mongoDB/chapter_08/8.9.png')
+            br
+            small 图8.9 字段<code>addr.zip</code>上的多键索引。
+        p 在使用多键索引时，需要考虑以下的限制条件
+        ul
+            li
+                strong 复合索引和多键索引的相互影响
+                p 当创建一个多键复合索引时，复合索引中最多只能有一个字段包含数组数据。比如，对于索引<code>{a: 1, b: 1}</code>，以下文档是允许的
+                p
+                    code {a: [1, 2], b:1}<br/>
+                    code {a: 1, b: [1, 2]}
+                p 但是如下的文档是不允许的，并且，如果上述索引已经存在，则MongoDB不允许如下的文档插入集合：
+                p
+                    code {a: [1, 2], b: [1, 2]}
+                p 如果尝试插入上述文档，MongoDB为拒绝插入，并且会产生interaction异常：<code>cannot index parallel arrays</code>。
+                    | MongoDB不允许对并列的数组字段创建索引，因为如果创建索引就需要对两个数组的笛卡尔积结果进行索引，
+                    | 笛卡尔积会导致索引快速膨胀，维护将会十分复杂。
+                .alert.alert-danger 分片键上的索引不能是多键索引。
+            li
+                strong 哈希索引
+                p 哈希索引和多键索引并不兼容。
+                p 为了计算哈希索引的哈希值，MongoDB分解子文档对象，并对整个对象值进行计算，最后得出哈希值。对于包含数组或子文档的字段，
+                    | 不能使用索引以支持匹配子文档的查询。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p
+                    strong 基本数组上的索引
+                p 假设文档结构如下：
+                p
+                    code {<br/>
+                    code.two '_id': ObjectId(...),<br/>
+                    code.two 'name': 'Warm Weather',<br/>
+                    code.two 'author': 'Steve',<br/>
+                    code.two 'tags': ['weather', 'hot', 'record', 'april']<br/>
+                    code }
+                p 如果存在索引<code>{tags: 1}</code>，则该索引是多键索引，会包含4个分离的索引条目：<code>weather、hot、record、april</code>。
+                    | 查询语句可以使用上述多键索引满足上述任意字段的匹配查询。
+                p
+                    strong 嵌套文档上数组上的索引
+                p 可以在包含嵌套文档的数组上创建多键索引，如下例所示，假设集合<code>feedback</code>中文档具有如下结构：
+                p
+                    code {<br/>
+                    code.two '_id': ObjectId(...),<br/>
+                    code.two 'title': 'Grocery Quality',<br/>
+                    code.two 'comment': [<br/>
+                    code.three {<br/>
+                    code.four 'author_id': ObjectId(...),<br/>
+                    code.four 'date': Date(...),<br/>
+                    code.four 'text': 'Please expand the cheddar selection'<br/>
+                    code.three },<br/>
+                    code.three {<br/>
+                    code.four 'author_id': ObjectId(...),<br/>
+                    code.four 'date': Date(...),<br/>
+                    code.four 'text': 'Please expand the mustard selection'<br/>
+                    code.three },<br/>
+                    code.three {<br/>
+                    code.four 'author_id': ObjectId(...),<br/>
+                    code.four 'date': Date(...),<br/>
+                    code.four 'text': 'Please expand the olive selection'<br/>
+                    code.three },<br/>
+                    code.two ]<br/>
+                    code }
+                p 字段<code>comments.text</code>上的索引将会是一个多键索引，并且会将数组中嵌套文档的索引条目添加到索引中。
+                p 如果集合<code>feedback</code>上存在索引<code>{'comments.text': 1}</code>，则对于以下查询语句：
+                p
+                    code db.feedback.find({'comments.text': 'Please expand the olive selection'})
+                p 上述查询语句将会匹配嵌套文档数组中包含如下嵌套文档的文档：
+                p
+                    code {<br/>
+                    code.two 'author_id': ObjectId(...),<br/>
+                    code.two 'date': Date(...),<br/>
+                    code.two 'text': 'Please expand the olive selection'<br/>
+                    code }
         p
+            strong
+                small 空间索引和查询
+        p MongoDB提供了多种索引和查询机制以支持空间坐标数据的处理。本小节内容详述了MongoDB的空间索引的特性。
+        ul
+            li
+                strong 几何类型
+                p 在存储位置信息数据和编写查询语句之前，必须确定使用何种几何类型来计算位置信息。选择何种几何类型，
+                    | 将会影响到数据如何存储、可以使用何种索引，以及编写查询语句的语法。MongoDB提供了两种几何类型：
+                ul
+                    li <strong>球面几何</strong>&emsp;为了计算类似地球球面坐标，将位置信息存储在球面集合，可以使用<code>2dsphere</code>索引。
+                        | 将位置信息存储为<code>GeoJSON</code>对象，该对象保存了经纬度数据对，GeoJSON对象的经纬度数据对使用<var>WGS84</var>坐标系统。
+                    li <strong>平面几何</strong>&emsp;为了计算欧几里得平面上的距离，可以将位置信息存储为传统的经纬度数据对和<code>2d</code>索引。
+            li
+                strong 位置数据
+                p 如果选择球面几何的坐标计算，则需要将位置信息存储为如下的格式：
+                ul
+                    li <strong>GeoObject对象</strong>&emsp;在<var>GeoObject</var>对象上的查询永远是执行球面几何的计算，使用的坐标系统是<var>WGS84</var>。
+                        p 版本2.4新特性：版本2.4中开始支持GeoObject对象的数据存储和查询，在之前的版本种，所有的坐标数据都是使用传统的经纬度数据对。
+                        p 版本2.6中的改变：版本2.6中增加了支持的GeoObject对象类型：MultiPoint、MultiLineString、MultiPolygon、GeometryCollection。
+                        p MongoDB支持的GeoObject对象类型有：Point、LingString、Polygon、MultiPoint、MultiLineString、MultiPolygon、GeometryCollection
+                    li <strong>传统的经纬度数据对</strong>&emsp;MongoDB通过使用<code>2dsphere</code>索引将传统的经纬度数据对转换为GeoObject对象类型，
+                        | 支持在传统的经纬度坐标对上进行球面几何的计算。
+            li
+                strong 查询选项
+                p MongoDB提供的空间查询选择符可以提供以下功能：
+                ul
+                    li <strong>包含查询</strong>&emsp;MongoDB可以匹配指定多边形内的位置，使用<code>$geoWithin</code>操作符执行包含查询。
+                        p <code>2d</code>和<code>2dsphere</code>索引都支持包含查询。从版本2.2.3之后的版本开始，MongoDB执行包含查询时不需要索引的支持，
+                            | 但是，索引可以提供查询的效率。
+                    li <strong>相交查询</strong>&emsp;MongoDB可以匹配与指定几何图形相交的位置。这些查询只能针对球面位置信息，
+                        | 使用<code>$geoIntersects</code>操作符执行相交查询。
+                        p 只有<code>2dsphere</code>索引支持相交查询。
+                    li <strong>附近查询</strong>&emsp;MongoDB可以匹配指定坐标点附近的位置。使用<code>$near</code>操作符执行附近查询。
+                        | <code>$near</code>操作符需要<code>2d</code>索引或<code>2dsphere</code>索引。
+            li
+                strong 空间索引
+                p MongoDB提供如下两种空间索引支持空间坐标数据的查询：
+                ul
+                    li <strong>2dsphere</strong>&emsp;该类型的索引支持：1》基于球面几何计算；2》GeoObject对象以及兼容传统的经纬度数据对；
+                        | 3》
+                    li <strong>2d</strong>&emsp;
+
+
