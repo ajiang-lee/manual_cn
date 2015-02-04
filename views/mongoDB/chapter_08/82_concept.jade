@@ -318,7 +318,423 @@ block content
                 p MongoDB提供如下两种空间索引支持空间坐标数据的查询：
                 ul
                     li <strong>2dsphere</strong>&emsp;该类型的索引支持：1》基于球面几何计算；2》GeoObject对象以及兼容传统的经纬度数据对；
-                        | 3》
-                    li <strong>2d</strong>&emsp;
+                        | 3》A compound index with scalar index fields (i.e. ascending or descending) as a prefix or suffix of the 2dsphere index field。
+                        p 版本2.4新特定：在2.4之前的版本种，不能使用<code>2dsphere</code>索引。
+                    li <strong>2d</strong>&emsp;该类型的索引支持：1》基于平面几何计算；2》使用传统的经纬度坐标对（即：平面坐标系统中的一个点）；
+                         | 3》A compound index with only one additional field, as a suffix of the 2d index field。
+            li
+                strong 空间索引和分片
+                p 不能使用空间左因作为分片键索引。
+                p 可以在分片集合的非分片键字段上创建空间索引。
+                p 对于分片集合，不支持使用<code>$near</code>的查询，但是可以使用<code>geoNear</code>命令或</code>$geoNear</code>聚合阶段。
+                p 同样可以使用<code>$geoWithin</code>查询空间数据。
+        p 以下内容详细介绍了空间索引以及相关的查询操作。
+        ul
+            li
+                strong 2dsphere索引（版本2.4新特性）
+                p <code>2dsphere</code>索引支持在类似地球的球面上计算空间坐标，该索引的数据可以存储在<var>GeoObject</var>对象中，
+                    | 也可以存储在传统的经纬度坐标对中（通过将经纬度坐标对转换为GeoJSON的Point类型）。MongoDB2.4中球面坐标系统以<var>WGS84</var>为基准。
+                    | 坐标轴的顺序是经度、维度。
+                p <code>2dsphere</code>索引支持MongoDB的所有空间数据查询：包含查询、相交查询、附近查询。
+                p 可以使用方法<code>db.collection.ensureIndex()</code>创建<code>2dsphere</code>索引。
+                    | 一个复合2dsphere索引可能关联到集合文档中的多个位置信息和非位置信息字段。
+                p
+                    strong 2dsphere的版本2（版本2.6发生了改变）
+                p MongoDB2.6引入了2dsphere的新版本：版本2.在MongoDB2.6中创建的2dsphere索引默认版本是版本2。如果需要创建版本1的2dsphere索引，
+                    | 创建索引时添加选项<code>{'2dsphereIndexVersion': 1}</code>。
+                p
+                    strong 新增的GeoJSON对象（版本2.6发生了改变）
+                p <code>2dsphere</code>的版本2增加了支持的GeoJSON对象：MultiPoint、MultiLineString、MultiPolygon、GeometryCollection。
+                p
+                    strong 稀疏特性（版本2.6发生了改变）
+                p 版本2的2dsphere索引默认是稀疏索引，忽略<code>sparse: true</code>选项。如果文档没有2dsphere索引的索引字段（或者该字段为空，或者是一个空数组），
+                    | 则MongoDB不会为该文档添加索引条目。对于插入操作，MongoDB只会向集合插入文档，而不会更新索引。
+                p 对于一个包含2dsphere索引的复合索引，只有2dsphere索引字段决定索引是否存在关联文档。
+                p 在MongoDB的早期版本中，只支持版本1的2dsphere索引，版本1默认不是稀疏索引，如果索引字段为空，则拒绝插入。
+                p
+                    strong geoNear和$geoNear的限制
+                p <code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段需要确保集合最多有一个<code>2dsphere</code>索引，
+                    | 并且（或者），只有一个<code>2d</code>索引。但是，其他空间查询操作符（即：$near、$geoWithin）允许集合包含多个空间索引。
+                p 之所以对<code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段存在上述的限制，
+                    | 是因为<code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段均不包含位置字段。因此，索引的选择（2d还是2dsphere）是模糊的。
+                p 对于其他空间空间查询操作符不存在上述限制，因为他们包含位置字段，不存在模糊选择。
+                p
+                    strong 分片键的限制
+                p 当对集合进行分片时，不能使用2dsphere索引作为分片键。但是可以对分片集合的其他字段创建空间索引。
+                p
+                    strong GeoJSON对象
+                p MongoDB支持的GeoObject对象有：Point、LineString、Polygon、MultiPoint、multiLineString、MultiPolygon、GeometryCollection，
+                    | 其中，后4中GeoJSON对象是MongoDB的2.6版本新增的。
+                p 为了索引GeoJSON数据，必须将数据存储在一个自定义的位置字段中。该位置字段存储了一个指定GeoJSON对象类型的嵌套文档，
+                    | 嵌套文档包含一个<code>coordinates</code>字段用于指定坐标对，该坐标对的顺序为经度、维度。如下所示：
+                p
+                    code {'location_field': {type: 'GeoJSON对象类型', coordinates: '坐标对'}}
+                ul
+                    li
+                        strong Point（版本2.4中新特性）
+                        p
+                            code {loc: {type: 'Point', coordinates: [40, 5]}}
+                    li
+                        strong LineString（版本2.4新特性）
+                        p
+                            code {loc: {type: 'LineString', coordinates: [[40, 5], [41, 6]]}}
+                    li
+                        strong Polygon（版本2.4新特性）
+                        p <var>Polygon（多边形）</var>由一系列GeoJSON LinearRing（线性环）坐标对数组的数组组成。这些LinearRing都是封闭的LineString。
+                            | 封闭的LineString最少包含四对坐标对，并且第一个和最后一个坐标对是相同的。
+                        p 连接曲面上两点的线的坐标对集合和连接平面上两点的线的坐标对集合可能相同，也可能不相同。
+                            | 连接曲面上两点的线可能是一个geodesic。应该仔细检查polygon中的点以避免有关共享边的错误，以及有关重叠、相交等的错误。
+                        p
+                            strong 单个闭环的多边形
+                        p 如下例所示，展示了一个GeoJSON Polygon，该多边形只包含一个闭环，注意起止点的坐标是相同的：
+                        p
+                            code {<br/>
+                            code.two loc: {<br/>
+                            code.three type: 'Polygon',<br/>
+                            code.three coordinates: [[[0, 0], [3, 6], [6, 1], [0, 0]]]<br/>
+                            code.two }<br/>
+                            code }
+                        p 对于单个闭环的多边形，不能自相交。
+                        p
+                            strong 多个闭环的多边形
+                        p 对于由多个闭环组成的多边形需要满足：1》第一个闭环必须是外部闭环；2》外部闭环不能自相交；3》所有内部的闭环必须被外部闭环完整的包含；
+                            | 4》内部闭环彼此不能相交，不能共享边。
+                        p 如下例所示，展示了一个GeoJSON Polygon，该多边形包含多个闭环的：
+                        p
+                            code {<br/>
+                            code.two loc: {<br/>
+                            code.three type: 'Polygon',<br/>
+                            code.three coordinates: [<br/>
+                            code.four [[0, 0], [3, 6], [6, 1], [0, 0]],<br/>
+                            code.four [[2, 2], [3, 3], [4, 2], [2, 2]]<br/>
+                            code.three ]<br/>
+                            code.two }<br/>
+                            code }
+                        p.text-center
+                            img.img-responsive(src='/images/mongoDB/chapter_08/8.10.png')
+                            br
+                            small 图8.10 多个闭环的多边形
+                    li
+                        strong MultiPoint（版本2.6新特性，需要版本2的2dsphere索引）
+                        p
+                            code {<br/>
+                            code.two loc: {
+                            code.three type: 'MultiPoint',<br/>
+                            code.three coordinates: [[ -73.9580, 40.8003 ], [ -73.9498, 40.7968 ], [ -73.9737, 40.7648 ], [ -73.9814, 40.7681 ]]<br/>
+                            code.two }<br/>
+                            code }
+                    li
+                        strong MultiLineString（版本2.6新特性，需要版本2的2dsphere索引）
+                        p
+                            code {<br/>
+                            code.two loc: {<br/>
+                            code.three type: 'MultiLineString',<br/>
+                            code.three coordinates: [<br/>
+                            code.four [[-73.96943, 40.78519], [-73.96082, 40.78095]],<br/>
+                            code.four [[-73.96415, 40.79229], [-73.95544, 40.78854]],<br/>
+                            code.four [[-73.97162, 40.78205], [-73.96374, 40.77715]],<br/>
+                            code.four [[-73.97880, 40.77247], [-73.97036, 40.76811]]<br/>
+                            code.three ]<br/>
+                            code.two }<br/>
+                            code }
+                    li
+                        strong MultiPolygon（版本2.6新特性，需要版本2的2dsphere索引）
+                        p
+                            code {<br/>
+                            code.two loc: {<br/>
+                            code.three type: 'MultiPolygon',<br/>
+                            code.three coordinates: [<br/>
+                            code.four [ [ [ -73.958, 40.8003 ], [ -73.9498, 40.7968 ], [ -73.9737, 40.7648 ], [ -73.9814, 40.7681 ], [ -73.958, 40.8003 ] ] ],<br/>
+                            code.four [ [ [ -73.958, 40.8003 ], [ -73.9498, 40.7968 ], [ -73.9737, 40.7648 ], [ -73.958, 40.8003 ] ] ]
+                            code.three ]<br/>
+                            code.two }<br/>
+                            code }
+                    li
+                        strong GeometryCollection（版本2.6新特性，需要版本2的2dsphere索引）
+                        p
+                            code {<br/>
+                            code.two loc: {<br/>
+                            code.three type: 'GeometryCollection',<br/>
+                            code.three geometries: [<br/>
+                            code.four {<br/>
+                            code.five type: 'MultiPoint',<br/>
+                            code.five coordinates: [[ -73.9580, 40.8003 ], [ -73.9498, 40.7968 ], [ -73.9737, 40.7648 ], [ -73.9814, 40.7681]]<br/>
+                            code.four },<br/>
+                            code.four {<br/>
+                            code.five type: 'MultiLineString',<br/>
+                            code.five coordinates: [<br/>
+                            code.six [ [ -73.96943, 40.78519 ], [ -73.96082, 40.78095 ] ],<br/>
+                            code.six [ [ -73.96415, 40.79229 ], [ -73.95544, 40.78854 ] ],<br/>
+                            code.six [ [ -73.97162, 40.78205 ], [ -73.96374, 40.77715 ] ],<br/>
+                            code.six [ [ -73.97880, 40.77247 ], [ -73.97036, 40.76811 ] ]<br/>
+                            code.five ]<br/>
+                            code.four }<br/>
+                            code.three ]<br/>
+                            code.two }<br/>
+                            code }
+            li
+                strong 2d索引
+                p 对于二维平面上的点可以使用<code>2d</code>索引，2d的索引主要是为了适配MongoDB2.2或更早版本中使用经纬度坐标对。
+                p 如果出现以下情况，可以考虑使用2d索引：
+                ul
+                    li 数据库中存在MongoDB2.2或更早版本中遗留的传统坐标对数据
+                    li 数据库中没有存储GeoJSON对象数据的计划
+                p
+                    strong 关注点
+                p <code>geoNear</code>命令和<code>$geoNear</code>管道阶段要求集合最多包含一个2d索引和（或者）最多一个2dsphere索引，
+                    | 但是，空间查询操作符（即：$near、$geoWithin）允许集合包含多个空间索引。
+                p 之所以对<code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段存在上述的限制，
+                    | 是因为<code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段均不包含位置字段。因此，索引的选择（2d还是2dsphere）是模糊的。
+                p 对于其他空间空间查询操作符不存在上述限制，因为他们包含位置字段，不存在模糊选择。
+                p 如果位置信息包含GeoJSON对象，则不要使用2d索引。如果需要在传统坐标对数据和GeoJSON数据上创建索引，使用2dsphere索引。
+                p 当对集合分片时，不能使用2d索引作为分片键。但是除此之外，可以在分片集合上创建空间索引。
+                p
+                    strong 行为特点
+                p 2d索引支持欧几里得平面上的计算，也支持在一个球面上进行距离的计算。如果需要进行空间计算（即：$geoWithin），
+                    | 需要将数据存储为GeoJSON对象，并且使用2dsphere索引。
+                p 一个2d索引可以关联2个字段，第一个字段必须是位置信息字段。
+                p
+                    strong 2D平面上的点
+                p 可以使用数组、嵌套文档的形式存储传统经纬度坐标对，如果可能，应该尽量使用数组：
+                p
+                    code loc: [经度数字, 维度数字]
+                p 嵌套文档的形式为：
+                p
+                    code loc: {lgn: 经度数字, lat: 维度数字}
+                p 应该尽量使用数组形式存储经纬度信息，应为有些语言不能保证嵌套文档的映射关系。
+                p
+                    strong 稀疏特性
+                p <code>geoHaystack</code>索引默认是稀疏索引，会忽略<code>sparse: true</code>选项。
+                    | 如果文档缺少<code>geoHaystack</code>索引字段（或字段为空或字段为空数组），则MongoDB不会向索引中添加对应文档的索引条目。
+                    | 对于插入操作，MongoDB只会将文档插入对应集合中，并不会更新关联的索引。
+                p <code>geoHaystack</code>索引包含一个<code>geoHaystack</code>索引键和一个非空间索引键；但是，
+                    | 只有<code>geoHaystack</code>索引键能决定索引是否关联了文档。
+                p
+                    strong 2d索引的内部机制
+                    p 本小节内容描述了MongoDB的2d索引的内部实现机理。
+                    ul
+                        li
+                            strong 2d索引Geohash的计算
+                            p 当在传统坐标对上创建一个空间索引时，MongoDB会在指定的位置范围内计算坐标对的<code>geohash</code>值，
+                                | 然后对计算后的<code>geohash</code>值建立索引。
+                            p 为了计算geohash，递归的将坐标对分解成象限，然后为每个象限赋值一个2位的值。例如，四个象限可以表示成如下：
+                            p
+                                code 01&emsp;11<br/>
+                                code 00&emsp;10
+                            p 这些2位的值（00,01，10,11）代表了每个象限以及各自象限中的所有点。对于使用2位值表示的geohash，
+                                | 所有位于左下象限的点的geohash为00，所有位于左上象限的点的geohash为01，
+                                | 所有位于右下象限的点的geohash为10，所有位于右上象限的点的geohash为11.
+                            p 为了更加精细的区分点的位置，可以进一步讲象限分解成子象限，此时使用4位的值代表每个象限以及包含的点；
+                                | 如果仍然不能满足精度要求，可以递归对子象限分解，直到达到精度为止。
+                        li
+                            strong 包含多个位置信息的文档（版本2.0的新特性）
+                            p 虽然2d空间索引不支持在单个文档中存在多个坐标对，但是可以通过使用多键索引实现多个坐标对的索引。如下例所示：
+                            p
+                                code {<br/>
+                                code.two _id : ObjectId(...),<br/>
+                                code.two locs : [<br/>
+                                code.three [ 55.5 , 42.3 ] ,<br/>
+                                code.three [ -74 , 44.74 ] ,<br/>
+                                code.three { lng : 55.5 , lat : 42.3 }<br/>
+                                code.two ]<br/>
+                                code }
+                            p 可以通过以下语句在<code>locs</code>字段上创建2d索引：
+                            p
+                                code db.places.ensureIndex({'locs': '2d'})
+                            p 也可以通过如下嵌套文档的形式：
+                            p
+                                code {<br/>
+                                code.two _id : ObjectId(...),<br/>
+                                code.two name : "...",<br/>
+                                code.two addresses : [<br/>
+                                code.three {<br/>
+                                code.four context : "home" ,<br/>
+                                code.four loc : [ 55.5, 42.3 ]<br/>
+                                code.three } ,<br/>
+                                code.three {<br/>
+                                code.four context : "home",<br/>
+                                code.four loc : [ -74 , 44.74 ]<br/>
+                                code.three }<br/>
+                                code.two ]<br/>
+                                code }
+                            p 可以通过以下语句在字段<code>addresses.loc</code>上创建空间索引：
+                            p
+                                code db.records.ensureIndex( { "addresses.loc": "2d" } )
+        p
+            strong
+                small 文本索引（版本2.4新特性）
+        p MongoDB提供了文本索引以支持在集合文档中进行文本内容的搜索操作。
+        p 文本索引可以包含任意字段，字段的值必须是字符串或者字符串数组。如果希望查询语句使用文本索引，需要使用<code>$text</code>操作符。
+        p 版本2.6中发生了改变：MongoDB默认启用文本搜索特性。在MongoDB2.4版本中，必须手工开启。
+        p
+            strong 创建文本索引
+        p 可以使用方法<code>db.collection.ensureIndex()</code>方法创建文本索引，如下所示：
+        p
+            code db.reviews.ensureIndex({comments: 'text'})
+        p 一个集合最多只能包含一个文本索引。
+        p
+            strong 支持的语言和断字符
+        p MongoDB的文本索引支持多种语言。
+        p
+            strong
+                small 文本索引（版本2.4新特性）
+        h4#section822 8.2.2&emsp;索引属性
+        p MongoDB中，除了支持的各种索引类型，每种索引也可以拥有不同的属性。本节内容详述了索引的各种属性，可以在创建索引时指定相关属性。
+        strong TTL索引
+        p TTL是MongoDB中特殊的索引，使用TTL索引，MongoDB可以在指定时间段后自动将文档从集合中删除。对于某些场景，TTL非常合适。
+        p
+            strong
+                small 关注点
+        p TTL索引存在如下限制：
+        ul
+            li 不支持复合索引
+            li 索引字段必须是日期类型
+            li 如果字段内容为数组，并且数组中包含多个日期，则MongoDB使用最早的日期匹配过期时间
+        p TTL索引不能保证过期数据立刻被删除，在数据过期和删除数据之间可能存在延迟。
+        p 删除过期文档的后台进程每60秒执行一次删除操作。因此，当数据过期后，在清理进程完成前，文档仍然存在于集合中。
+        p 删除文档的延迟时间取决于<code>mongod</code>实例的负载。因此，过期数据在集合中存在的时间可能超过60秒。
+        p 初次之外，TTL索引和普通的索引没有区别，MongoDB同样可以使用TTL索引执行查询。
+        strong 唯一索引
+        p 唯一索引确保索引字段不会存在重复值，如果插入重复值，则引起异常。
+        p 使用带有<code>unique: true</code>选项的<code>db.collection.ensureIndex()</code>方法创建唯一索引。如下例所示：
+        p
+            code db.members.ensureIndex({'user_id': 1}, {unique: true})
+        p 上述语句在集合<code>members</code>的<code>user_id</code>字段上创建了一个唯一索引。
+        p MongoDB中创建的索引默认是非唯一的，除非显式指定<code>unique: true</code>选项。
+        p 如果在创建复合索引是指定<code>unique: true</code>选项，则代表复合索引的所有字段组合起来是唯一的。
+        p
+            strong
+                small 行为特点
+        ul
+            li
+                strong 唯一性只对不同的文档有效
+                p 唯一索引只能约束集合中不同的文档。也就是说，唯一索引不允许集合中的文档具有相同值的索引字段，但是，
+                    | 唯一索引不能阻止集合的单个文档具有相同值的索引字段，并且，对于单个文档的重复值，索引只记录一次。
+                p 例如：集合在字段<code>a.b</code>上存在一个唯一索引：
+                p
+                    code db.collection.ensureIndex({'a.b': 1}, {unique: true})
+                p 对于上述集合，如果集合中不存在字段<code>a.b</code>值为<code>5</code>的文档，则如下文档可以成功插入文档：
+                p
+                    code db.collection.insert( { a: [ { b: 5 }, { b: 5 } ] } )
+            li
+                strong 唯一索引和缺失字段
+                p 如果一个文档不存在唯一索引索引字段（或者索引字段为空值），则索引会为该文档存储一个空值。由于唯一性的限制，MongoDB只会允许一个文档缺少索引字段。
+                    | 如果一个集合中，存在多个文档没有索引字段（或者索引字段为空），则创建唯一索引时会由于键重复错误而失败。
+                p 可以结合唯一约束和稀疏索引实现上述操作。
+            li
+                strong 限制条件
+                p 不能在哈希索引上施加唯一性限制。
+        strong 稀疏索引
+        p 稀疏索引存储的索引条目只会是包含索引字段的文档，即便索引字段为空值，稀疏索引会跳过缺少索引字段的文档。之所以称为“稀疏”，
+            | 是因为索引没有包含集合的所有文档。相对的，非稀疏索引包含集合所有文档，对于缺少索引字段的文档，索引存储为空值。
+        p 使用带有选项<code>sparse: true</code>的<code>db.collection.ensureIndex()</code>方法可以创建稀疏索引，
+            | 如下例所示，在集合<code>addresses</code>的<code>xmpp_id</code>字段上创建了一个稀疏索引：
+        p
+            code db.addresses.ensureIndex({'xmpp_id': 1}, {sparse: true})
+        p
+            strong
+                small 行为特点
+        ul
+            li
+                strong 稀疏索引和不完整的结果集（版本2.6中发生了改变）
+                p 如果一个稀疏索引可能导致查询语句的结果集不完整，或者排序结果不完整，则MongoDB不会使用该稀疏索引，
+                    | 除非使用<code>hint()</code>显式的指定使用该索引。
+                p 例如，包含过滤条件<code>{x: {$exists: false}}</code>的查询语句不会使用字段<code>x</code>上的稀疏索引，除非显式指定强制使用该索引。
+            li
+                strong 默认的稀疏索引
+                p 2dsphere、2d、geoHaystack、text索引默认都是稀疏索引
+            li
+                strong 稀疏复合索引
+                p 对于只包含升序/降序索引键的稀疏复合索引，只要文档至少包含一个索引键，则稀疏复合索引就会索引该文档。
+                p 对于包含升序/降序索引键和空间索引键的稀疏复合索引，空间索引键的存在与否决定了是否索引该文档。
+                p 对于包含升序/降序索引键和文本索引键的稀疏复合索引，文本索引键的存在与否决定了是否索引该文档。
+            li
+                strong 稀疏和唯一属性
+                p 如果索引同时包含稀疏和唯一属性，则集合中不存在索引字段的重复值，但是允许多个文档不包含索引字段。
+        p
+            strong
+                small 示例程序
+        .panel.panel-default
+            .panel-heading
+                strong 在集合上创建稀疏索引
+            .panel-body
+                p 假设集合<code>scores</code>包含以下文档：
+                p
+                    code { "_id" : ObjectId("523b6e32fb408eea0eec2647"), "userid" : "newbie" }<br/>
+                    code { "_id" : ObjectId("523b6e61fb408eea0eec2648"), "userid" : "abby", "score" : 82 }<br/>
+                    code { "_id" : ObjectId("523b6e6ffb408eea0eec2649"), "userid" : "nina", "score" : 90 }
+                p 字段<code>score</code>上存在一个稀疏索引：
+                p
+                    code db.scores.ensureIndex({score: 1}, {sparse: true})
+                p 如下查询语句使用上述稀疏索引获取<code>score</code>小于<code>90</code>的文档：
+                p
+                    code db.socers.find({score: {$lt: 90}})
+                p 结果如下：
+                p
+                    code { "_id" : ObjectId("523b6e61fb408eea0eec2648"), "userid" : "abby", "score" : 82 }
+                p 由于字段<code>userid</code>值为<code>newbie</code>的文档没有<code>score</code>字段，因此不满足查询语句的过滤条件，
+                    | 所以查询语句可以使用该稀疏索引。
+        .panel.panel-default
+            .panel-heading
+                strong 使用稀疏索引不能返回完整结果集
+            .panel-body
+                p 假设集合<code>scores</code>包含以下文档：
+                p
+                    code { "_id" : ObjectId("523b6e32fb408eea0eec2647"), "userid" : "newbie" }<br/>
+                    code { "_id" : ObjectId("523b6e61fb408eea0eec2648"), "userid" : "abby", "score" : 82 }<br/>
+                    code { "_id" : ObjectId("523b6e6ffb408eea0eec2649"), "userid" : "nina", "score" : 90 }
+                p 字段<code>score</code>上存在一个稀疏索引：
+                p
+                    code db.scores.ensureIndex({score: 1}, {sparse: true})
+                p 由于字段<code>userid</code>值为<code>newbie</code>的文档没有<code>score</code>字段，所以上述索引中没有该文档对应的索引条目。
+                p 考虑如下查询语句：
+                p
+                    code db.scores.find().sort({score: -1})
+                p 返回结果如下：
+                p
+                    code { "_id" : ObjectId("523b6e6ffb408eea0eec2649"), "userid" : "nina", "score" : 90 }<br/>
+                    code { "_id" : ObjectId("523b6e61fb408eea0eec2648"), "userid" : "abby", "score" : 82 }<br/>
+                    code { "_id" : ObjectId("523b6e32fb408eea0eec2647"), "userid" : "newbie" }
+                p 虽然上述查询语句是按照索引字段排序的，但是MongoDB不会使用上述稀疏索引返回排序结果，因为稀疏索引不能满足查询结果。
+                p 如果强制查询语句使用上述稀疏索引：
+                p
+                    code db.scores.find().sort( { score: -1 } ).hint( { score: 1 } )
+                p 则返回结果如下：
+                p
+                    code { "_id" : ObjectId("523b6e6ffb408eea0eec2649"), "userid" : "nina", "score" : 90 }<br/>
+                    code { "_id" : ObjectId("523b6e61fb408eea0eec2648"), "userid" : "abby", "score" : 82 }
+        .panel.panel-default
+            .panel-heading
+                strong 稀疏索引和唯一性约束
+            .panel-body
+                p 假设集合<code>scores</code>包含以下文档：
+                p
+                    code { "_id" : ObjectId("523b6e32fb408eea0eec2647"), "userid" : "newbie" }<br/>
+                    code { "_id" : ObjectId("523b6e61fb408eea0eec2648"), "userid" : "abby", "score" : 82 }<br/>
+                    code { "_id" : ObjectId("523b6e6ffb408eea0eec2649"), "userid" : "nina", "score" : 90 }
+                p 字段<code>score</code>上存在一个稀疏唯一性索引：
+                p
+                    code db.scores.ensureIndex({score: 1}, {sparse: true, unique: true})
+                p 则上述索引允许缺少<code>score</code>字段的文档，以及<code>score</code>值不重复的文档插入，如下文档可以成功插入集合：
+                p
+                    code db.scores.insert({"userid":"AAAAAAA", "score": 43 } )<br/>
+                    code db.scores.insert({"userid":"BBBBBBB", "score": 34 } )<br/>
+                    code db.scores.insert({"userid":"CCCCCCC" } )<br/>
+                    code db.scores.insert({"userid":"DDDDDDD" } )
+                p 但是，索引不允许<code>score</code>字段重复值插入集合，如下文档不能成功插入集合：
+                p
+                    code db.scores.insert( { "userid": "AAAAAAA", "score": 82 } )<br/>
+                    code db.scores.insert( { "userid": "BBBBBBB", "score": 90 } )
+        h4#section823 8.2.3&emsp;创建索引
+
+
+
+
+
+
+
+
+
+
 
 
