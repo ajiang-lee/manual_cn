@@ -578,6 +578,21 @@ block content
         p
             strong
                 small 文本索引（版本2.4新特性）
+        p MongoDB中的文本索引不支持中文，具体用法请参考原文。
+        p
+            strong
+                small 哈希索引（版本2.4新特性）
+        p 哈希索引维护了索引字段值的哈希值。哈希函数分解子文档，并且为分解后的整体计算哈希值，但是不支持多键索引（即：索引字段是数组）。
+        p 哈希索引支持使用哈希分片键对一个集合进行分片。使用哈希分片键确保集合中数据的分布更均匀。
+        p MongoDB可以使用哈希索引支持相等性的匹配，但是不支持范围匹配。
+        p 不能创建包含哈希索引字段的复合索引，也不能为哈希索引指定唯一性约束；但是，可以在同一个字段上创建哈希索引和非哈希索引，
+            | 如此以来，MongoDB可以使用非哈希索引匹配范围查询。
+        p 可以使用如下语法创建哈希索引：
+        p
+            code db.active.ensureIndex({a: 'hashed'})
+        .alert.alert-danger MongoDB的哈希索引在计算哈希值前会将浮点数截取成64字节的整数。
+            | 例如，如果一个字段包含值2.3,2.2,2.9，则该字段上的哈希索引对这三个浮点数的哈希值相同。为了避免混淆，
+            | 不要再存储浮点数的字段上使用哈希索引。
         h4#section822 8.2.2&emsp;索引属性
         p MongoDB中，除了支持的各种索引类型，每种索引也可以拥有不同的属性。本节内容详述了索引的各种属性，可以在创建索引时指定相关属性。
         strong TTL索引
@@ -726,6 +741,132 @@ block content
                     code db.scores.insert( { "userid": "AAAAAAA", "score": 82 } )<br/>
                     code db.scores.insert( { "userid": "BBBBBBB", "score": 90 } )
         h4#section823 8.2.3&emsp;创建索引
+        p MongoDB提供了几个只会影响创建索引的选项，这些选项需要以文档的形式传递给方法<code>db.collection.ensureIndex()</code>的第二个参数，
+            | 本节详述了如何创建索引，以及相关选项的作用和用法。
+        .alert.alert-info 使用方法<code>db.collection.ensureIndex()</code>创建索引时，有些选项控制了索引的属性，并不会影响索引的创建。
+            | 比如：<code>unique: true</code>选项影响的是索引创建后索引的行为。
+        strong 后台创建索引
+        p 默认情况下，创建索引动作会阻塞数据库中的其他所有动作。当在一个集合上创建索引时，拥有该集合的数据库无法进行正常的读写操作，
+            | 直到索引创建结束；<code>mongod</code>实例中的其他数据中，需要读锁或者写锁的动作将会等待该前端创建索引动作结束。
+        p 对于耗时严重的索引创建，考虑使用<code>background</code>选项，这样在索引创建过程中，数据库仍然可以保持可用状态。
+            | 如下所示：
+        p
+            code db.people.ensureIndex({zipcode: 1}, {background: true})
+        p 默认情况下，MongoDB中创建索引时<code>background</code>的值为<code>false</code>。如下所示，可以和其他选项同时使用：
+        p
+            code db.people.ensureIndex({zipcode: 1}, {background: true, sparse: true})
+        p
+            strong
+                small 行为特点
+        p 在版本2.4中，一个<code>mongod</code>实例可以在后台并发的创建多个索引。
+        p 版本2.4中发生了改变：在版本2.4之前，一个<code>mongod</code>实例每个数据库每次只能创建一个索引。
+        p 版本2.2中发生了改变：在版本2.2之前，单个<code>mongod</code>实例一次只能创建一个索引。
+        p 后台创建索引的动作发生在后台进程中，所以其他数据库动作在索引创建过程中仍然可以正常执行。但是，
+            | <code>mongo</code> shell或者创建索引使用的数据库链接会阻塞，直到索引创建完成。如果需要继续向数据库发送指令，需要打开另外的数据库链接，
+            | 或者打开新的<code>mongo</code> shell。
+        p 查询语句从不会使用创建未完成的索引：只有在索引成功创建后，该索引才是可用的。
+        .alert.alert-danger 如果MongoDB正在后台创建索引，在创建索引的集合上不能执行其他数据库管理动作，包括<code>repairDatabase</code>、
+            | 删除集合、<code>compact</code>，在索引创建过程中，这些动作将会引起异常。
+        p
+            strong
+                small 性能
+        p 后台创建索引采用渐进的方式创建，相较于前台创建索引的方法较慢。如果索引的大小大于可用的RAM，渐进的方式要比普通方式耗费更长的时间。
+        p 如果在应用程序中包含<code>ensureIndex()</code>操作，并且索引不存在其他的业务关注，则创建索引会严重影响数据库的性能。
+        p 为了避免性能问题，确保在应用程序启动时使用方法<code>getIndexes()</code>检查可用的索引，如果相关索引不存在，
+            | 则应该终止应用，待完善索引后再重启应用。对于生产环境中的索引创建，应该使用在维护窗口中完成，确保不影响数据库。
+        p
+            strong
+                small 在副本集的二级成员中创建索引
+        p 版本2.6中发生了改变：二级成员可以在后台创建索引。在之前的版本中，在二级成员中创建索引必须是在前台完成。
+        p 当副本集中的一级成员完成索引的创建后，二级成员开始在后台创建对应的索引。如果MongoDB一级成员中索引的创建是在后台进行，
+            | 则二级成员之后也会在后台创建索引。
+        p 为了在二级成员中创建很大的索引，最好的办法是每次将一个二级成员以独立的模式重启，然后在次成员上创建索引，索引创建成功后，
+            | 重启该成员，使之成为副本级的成员，并赶上副本集中的其他成员的状态，之后在其他二级成员中重复上述步骤。
+            | 当所有二级成员完成索引的创建后，停止一级成员，并以独立模式重启，然后在次成员上创建索引。
+        p 在一个二级成员中创建索引所需的时间必须在<var>oplog</var>允许的时间窗口内，这样才能保证二级成员能够赶上一级成员的状态。
+        p 在“recovering”模式下的二级成员中创建索引总是在前台创建，这样才能保证二级成员尽快赶上一级成员的状态。
+        strong 删除重复记录
+        p MongoDB不能在一个包含重复值的字段上创建唯一索引。如果需要强制创建唯一性索引，创建索引时可以指定<code>dropDups</code>选项，
+            | 该选项只会索引该字段的第一次出现，并且删除之后的重复记录。
+        .alert.alert-danger 在唯一性索引中，如果文档不包含索引字段，则索引对该文档会存在一条“null”索引条目。
+            p 如果后续文档同样不包含索引字段，并且设置了<code>{dropDups: true}</code>，则MongoDB会删除后续记录。
+                | 如果结合<code>dropDups</code>和稀疏属性，则索引只会索引包含该字段的文档，不包含索引字段的文档仍然存在集合中，
+                | 只是索引中不存在对应的索引条目。
+        p 如下所示，在集合<code>accounts</code>的<code>username</code>字段上创建唯一索引，并删除重复记录：
+        p
+            code db.accounts.ensureIndex( { username: 1 }, { unique: true, dropDups: true } )
+        .alert.alert-danger 指定<code>{dropDups: true}</code>选项是，会删除集合中的数据，所以使用时许谨慎使用。
+        p 默认情况下，创建索引时，<code>dropDups</code>的值为<code>false</code>。
+        strong 索引名称
+        p 索引的默认名字是：以符号<code>_</code>链接索引键和对应的排序规则。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 如下所示：
+                p
+                    code db.products.ensureIndex( { item: 1, quantity: -1 } )
+                p 则上述语句创建的索引的名称为：<code>item_1_quantity_-1</code>。
+                p 如果需要自定义索引名称，可是使用如下语句：
+                p
+                    code db.products.ensureIndex( { item: 1, quantity: -1 } , { name: "inventory" } )
+                p 上述语句创建的索引名称为：<code>inventory</code>。
+                p 使用方法<code>getIndexs()</code>方法可以获取集合上的索引信息。
+        h4#section824 8.2.4&emsp;索引的交叉使用（版本2.6新特性）
+        p MongoDB可以利用多个索引的交叉引用来满足查询，一般情况下，每个交叉引用需要两个索引；但是，MongoDB可以利用多个索引（或嵌套索引）的交叉引用来满足查询。
+        p 假设集合<code>orders</code>上存在如下索引：
+        p
+            code {qty: 1}<br/>
+            code {item: 1}
+        p MongoDB可以利用上述两个索引的交叉引用来满足如下查询语句：
+        p
+            code db.orders.find({item: 'abc123', qty: {$gt: 15}})
+        p 对于使用索引的交叉引用的查询语句的查询计划，方法<code>explain()</code>的结果中字段<code>cursor</code>为<code>Complex Plan</code>。
+        strong 索引前缀的交叉引用
+        p 对于交叉引用，MongoDB可以使用一个完整的索引，也可以使用一个复合索引的前缀部分。
+        p 假设集合<code>orders</code>上存在如下索引：
+        p
+            code { qty: 1 }<br/>
+            code { status: 1, ord_date: -1 }
+        p 则下例中的查询语句可以使用上述两个索引的交叉引用来满足：
+        p
+            code db.orders.find( { qty: { $gt: 10 } , status: "A" } )
+        strong 索引的交叉引用和复合索引
+        p 索引的交叉引用并不会降低对复合索引的需求。但是，由于在复合索引中，索引字段的顺序和排序规则对索引非常重要，所以在某些场景中，
+            | 复合索引很难满足查询的需求。
+        p 例如：假设集合<code>orders</code>存在如下的复合索引：
+        p
+            code { status: 1, ord_date: -1 }
+        p 则上述复合索引可以满足如下的查询语句：
+        p
+            code db.orders.find( { status: { $in: ["A", "P" ] } } )<br/>
+            code db.orders.find( {ord_date: { $gt: new Date("2014-02-01") }, status: {$in:[ "P", "A" ] }})
+        p 但是，不能满足如下的查询语句：
+        p
+            code db.orders.find( { ord_date: { $gt: new Date("2014-02-01") } } )<br/>
+            code db.orders.find( { } ).sort( { ord_date: 1 } )
+        p 如果集合<code>orders</code>存在如下的索引：
+        p
+            code { status: 1 }<br/>
+            code { ord_date: -1 }
+        p 则能满足上述的4个查询语句。
+        p 至于如何在复合索引和索引的交叉引用中做出选择，取决于具体的场景。
+        strong 索引的交叉引用和排序
+        p 当<code>sort()</code>操作需要引用的索引与查询谓语部分完全分离，则MongoDB不会使用索引的交叉引用。
+        p 假设集合<code>orders</code>上存在如下索引：
+        p
+            code { qty: 1 }<br/>
+            code { status: 1, ord_date: -1 }<br/>
+            code { status: 1 }<br/>
+            code { ord_date: -1 }
+        p 对于下例语句不会使用索引的交叉引用：
+        p
+            code db.orders.find( { qty: { $gt: 10 } } ).sort( { status: 1 } )
+        p 对于上述查询语句，MongoDB不会交叉引用索引<code>{ qty: 1 }、 { status: 1 }</code>，或者<code>{ qty: 1 }、 { status: 1, ord_date: -1 }</code>。
+        p 但是对于下例查询语句，MongoDB会交叉引用<code>{ status: 1, ord_date: -1 }、{ qty: 1 }</code>，
+            | 因为索引<code>{ status: 1, ord_date: -1 }</code>可以满足查询语句的部分过滤条件（即：满足查询语句的部分谓语）。
+        p
+            code db.orders.find( { qty: { $gt: 10 } , status: "A" } ).sort( { ord_date: -1 } )
+
 
 
 
