@@ -9,3 +9,239 @@ block content
                 a(href='/mongoDB/index') 索引
             li.active 指导教程
         h3 8.3&emsp;指导教程
+        p 索引通过高效的存储结构存储集合文档的部分数据，允许MongoDB高效的执行相关查询语句。
+        p 本节内容详细介绍了在MongoDB中创建索引、维护索引相关的内容，并且讨论了索引的实施策略和实际使用。
+        p 本节主要包含以下内容：
+        ul
+            li
+                a(href='#section831') 8.3.1&emsp;创建索引
+            li
+                a(href='#section832') 8.3.2&emsp;管理索引
+            li
+                a(href='#section833') 8.3.3&emsp;空间索引
+            li
+                a(href='#section834') 8.3.4&emsp;文本搜索索引
+            li
+                a(href='#section835') 8.3.5&emsp;索引策略
+        h4#section831 8.3.1&emsp;创建索引
+        p 以下内容详细讲解了在MongoDB中如何创建各种类型的索引，以及在副本级、分片群集中如何创建索引。
+        strong 在单个字段上创建索引
+        p 可以使用方法<code>ensureIndex()</code>或者驱动程序中的API方法创建索引。方法<code>ensureIndex()</code>只有在索引不存在时创建，
+            | 即：该方法不会重复创建索引。
+        p 例如，下例操作在集合<code>records</code>的字段<code>userid</code>上创建了一个普通索引：
+        p
+            code db.records.ensureIndex({userid: 1})
+        p 使用<code>ensureIndex()</code>方法创建索引时，为索引字段指定的值（上例中为：1）代表创建的索引类型。例如：
+            | <code>1</code>代表索引以升序存储；<code>-1</code>代表索引以降序存储。
+        p 上述语句创建的索引会加速字段<code>userid</code>上的查询，例如：
+        p
+            code db.records.find({userid: 2})<br/>
+            code db.records.find({userid: {$gt: 10}})
+        p 上述语句创建的索引对于<code>userid</code>字段之外字段的查询没有效果（即：其他字段的查询不会使用该索引），例如：
+        p
+            code db.records.find({profile_url: 2})
+        p 对于不能使用索引的查询语句，MongoDB必须遍历集合中的所有文档，以获得匹配查询条件的文档集合。
+        p
+            strong
+                small 其他考虑
+        p 虽然索引可以提高查询语句的执行效率，但是索引本身仍然需要耗费存储空间，并且，对于文档的更新操作，不单单需要更新集合数据，
+            | 仍然需要更新关联的索引数据，所以，在创建索引之前，应该全面的考虑索引策略。
+        p 如果集合包含大量的数据，并且要求在索引创建过程中，对该集合仍然可以正常访问，可以考虑使用在后台创建索引。
+        strong 创建复合索引
+        p 可以使用类似下例的方法创建复合索引（即：索引字段为多个）：
+        p
+            code db.collections.ensureIndex({a: 1, b: 1, c: 1})
+        p 使用<code>ensureIndex()</code>方法创建索引时，为索引字段指定的值（上例中为：1）代表创建的索引类型。例如：
+            | <code>1</code>代表索引以升序存储；<code>-1</code>代表索引以降序存储。
+        p
+            strong
+                small 示例
+        p 如下操作在集合<code>products</code>的字段<code>item、category、price</code>上创建了一个符合索引：
+        p
+            code db.products.ensureIndex({item: 1, category: 1, price: 1})
+        p
+            strong
+                small 其他考虑
+        p 虽然索引可以提高查询语句的执行效率，但是索引本身仍然需要耗费存储空间，并且，对于文档的更新操作，不单单需要更新集合数据，
+            | 仍然需要更新关联的索引数据，所以，在创建索引之前，应该全面的考虑索引策略。
+        p 如果集合包含大量的数据，并且要求在索引创建过程中，对该集合仍然可以正常访问，可以考虑使用在后台创建索引。
+        strong 创建唯一性索引
+        p MongoDB允许为索引指定唯一性约束，唯一性约束会阻止应用程序插入索引字段值重复的文档。另外，如果需要在已存在重复值的字段上创建唯一性索引，
+            | 创建索引时，需要执行重复数据的删除操作。
+        p 使用类似下例的语法创建唯一性索引（即：需要指定<code>unique: true</code>选项）：
+        p
+            code db.collection.ensureIndex({a: 1}, {unique: true})
+        p 例如，需要在集合<code>accounts</code>的字段<code>tax-id</code>上创建唯一性索引，以保证该字段不会存在重复值，可以使用如下语句：
+        p
+            code db.accounts.ensureIndex({'tax-id': 1}, {unique: true})
+        p 默认情况下，集合的<code>_id</code>字段上的索引是唯一性索引。在某些场景种，可能使用该字段作为业务相关的唯一性限制，
+            | 而不是在单独的字段上创建唯一性索引。
+        p 在某些场景中，可能会将唯一性约束和稀疏选项结合使用。当MongoDB在某个字段上创建索引时，如果文档的对应字段为空，则唯一性索引中针对该文档的索引条目为<code>null</code>，
+            | 由于唯一性索引不允许存在重复值，通过使用稀疏选项，如果后续文档没有索引字段或者字段值为空，则索引不会存在文档的索引条目，使用方法如下：
+        p
+            code db.collection.ensureIndex({a: 1}, {unique: true, sparse: true})
+        p 同样，唯一性约束也可以用于复合索引：
+        p
+            code db.collection.ensureIndex({a: 1, b: 1}, {unique: true})
+        p 复合索引的唯一性约束指的是索引字段组合的唯一，而不是各个字段都需要唯一。
+        p
+            strong
+                small 删除重复值
+        p 如果必须在已包含重复值的字段上创建索引，可以使用<code>dropDups</code>选项，该选项会在创建索引过程中，删除后续的重复记录，如下：
+        p
+            code db.collection.ensureIndex({a: 1}, {unique: true, dropDups: true})
+        .alert.alert-danger 指定<code>dropDups: true</code>选项会导致集合数据丢失，必须谨慎使用。
+        strong 创建稀疏索引
+        p 稀疏索引和非稀疏索引类似，不同点是：稀疏索引对于不包含索引字段（或字段为空）的文档，并不存储索引条目。因此，稀疏索引在某些场景种，
+            | 可以节省存储空间。
+        p 可以使用类似下例的语法创建稀疏索引：
+        p
+            code db.collection.ensureIndex({a: 1}, {sparse: true})
+        p
+            strong
+                small 示例
+        p 如下语句在集合<code>users</code>的<code>twitter_name</code>字段上创建一个稀疏索引：
+        p
+            code db.users.ensureIndex({'twitter_name': 1}, {sparse: true})
+        p 上述索引中不包含不存在索引字段<code>twitter_name</code>的文档的索引条目。
+        p
+            strong
+                small 其他考虑
+        p 有时稀疏索引不能返回完整的结果集，此时查询语句不会使用该稀疏索引。
+        strong 创建哈希索引（版本2.4新特性）
+        p 哈希索引首先对索引字段的值计算哈希值，然后对哈希值建立索引。哈希索引支持相等性匹配，并且对于一些分片集合很适合作为分片键。
+        .alert.alert-info 当建立哈希索引时，哈希值的计算是由MongoDB自动完成的，不需要应用程序计算。
+        p 可是使用类似下例的语法创建哈希索引：
+        p
+            code db.collection.ensureIndex({_id: 'hashed'})
+        p
+            strong
+                small 其他考虑
+        p MongoDB支持任意字段的哈希索引，但是不支持数组字段。
+        p 如果一个字段上已经存在哈希索引，则不能在该字段上创建复合索引。
+        strong 在副本集上创建索引
+        p 在副本集中，当一级成员完成索引的创建后，二级成员才开始创建索引。在分片群集中，
+            | <code>mongos</code>会将<code>ensureIndex()</code>发送到每个分片（分片为副本集）的一级成员，
+            | 一级成员完成索引的创建后，二级成员开始创建对应的索引。
+        p 为了最小化索引创建对副本集的影响，请使用下文介绍的处理步骤创建索引。
+        p
+            strong
+                small 处理步骤
+        .alert.alert-info 如果是在分片集群（每个分片都是副本集）上创建索引，则在每个分片上重复以下步骤即可。
+        ul
+            li
+                strong 停止一个二级成员
+                p 停止一个二级成员的<code>mongod</code>实例，然后不使用选项<code>--replSet</code>在不同的端口重启该<code>mongod</code>实例。
+                    | 此时，该实例处于“独立”模式。
+                p 例如，如果二级成员的<code>mongod</code>实例是在27017端口运行，可以不使用选项<code>--replSet</code>在端口47017重启该实例，如下：
+                p
+                    code mongod --port 47017
+            li
+                strong 创建索引
+                p 在<code>mongo</code> shell中使用方法<code>ensureIndex()</code>创建索引。
+                p 例如，在集合<code>records</code>的<code>username</code>字段上创建一个升序索引：
+                p
+                    code db.records.ensureIndex({username: 1})
+            li
+                strong 重启mongod实例
+                p 当索引创建成功后，使用选项<code>--repsSet</code>在原来的端口下重启<code>mongod</code>实例：
+                p
+                    code mongod --port 27017 --respSet rs0
+                p 上述命令使实例重新加入原来的副本集中。
+            li
+                strong 在所有二级成员上创建索引
+                p 对于副本集中的所有二级成员，按照上述三个步骤完成各自索引的创建。
+            li
+                strong 在一级成员上创建索引
+                p 对于一级成员上的索引创建，可以采用以下两种方法中的任意一种：
+                ol
+                    li 在一级成员上执行后台创建索引
+                    li 在<code>mongo</code> shell中使用方法<code>rs.stepDown()</code>停止一级成员，
+                        | 该操作会使当前的一级成员成为二级成员，副本集会通过选举产生一个新的一级成员。
+                        | 之后按照上文介绍的三个步骤完成索引的创建。
+        p 后台创建索引比前台创建索引耗时更长，并且导致一个不太紧凑的索引结构；另外，后台创建索引可能影响一级成员的些操作的性能。
+            | 但是，后台创建索引允许副本集在索引创建过程中持续的提供正常的服务。
+        p
+            strong
+                small 其他考虑
+        ul
+            li 确保<code>oplog</code>足够大，以使副本集成员在完成创建索引操作后，成员实例的状态不会落下太远，通过<code>oplog</code>可以赶上。
+            li 上述处理步骤一次只处理副本集中的一个成员。
+            li 当使用<code>dropDups: true</code>选项创建唯一性索引时，不能使用上述处理步骤。
+            li 在版本2.6中，如果一级成员的索引是在后台创建的，则二级成员的索引创建也在后台进行。
+        strong 在后台创建索引
+        p 默认情况下，MongoDB在前台创建索引，该种创建方式会阻塞索引所在数据库的所有读写操作。并且，所有数据库中需要读写锁的操作都会被阻塞。
+        p
+            strong
+                small 其他考虑
+        p 后台创建索引需要耗费更长的时间，并且导致初始创建的索引结构不够紧凑，占用空间较大。随着时间的推进，
+            | 通过后台方法创建的索引的结构紧凑程度可以达到通过前台方式创建的索引。
+        p 当MongoDB在后台完成索引的创建后，索引在功能上和其他方式创建的索引没有区别。
+        p
+            strong
+                small 处理步骤
+        p 如果需要在后台创建索引，可以在方法<code>ensureIndex()</code>中指定<code>background: true</code>选项，如下：
+        p
+            code db.collection.ensureIndex({a: 1}, {background: true})
+        strong 创建老格式的索引
+        .alert.alert-danger 只有在MongoDB2.0之前的版本种使用。
+        p MongoDB2.0版本引入了<code>{v: 1}</code>索引格式。MongoDB2.0版本和之后的版本均支持<code>{v: 1}</code>和较早的<code>{v: 0}</code>索引格式。
+        p MongoDB2.0之前的版本只支持<code>{v: 0}</code>索引格式，如果需要回滚数据库到2.0之前的版本，需要重建索引。
+        p 如果需要创建2.0之前版本的索引，需要首先使用<code>dropIndex()</code>方法删除索引，然后使用方法<code>ensureIndex()</code>创建索引。
+            | 不能简单的重建索引。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设将数据库从2.0版本回滚到1.8版本，并且存在如下索引：
+                p
+                    code { "v" : 1, "key" : { "name" : 1 }, "ns" : "mydb.items", "name" : "name_1" }
+                p 为了重新创建上述索引，则首先需要删除索引：
+                p
+                    code db.items.dropIndex({name: 1})
+                p 然后，重建<code>{v: 0}</code>格式的索引：
+                p
+                    code db.items.ensureIndex({name: 1}, {v: 0})
+        h4#section832 8.3.2&emsp;管理索引
+        p 本小节内容详述了如何管理索引，以及如何评估索引的性能。
+        strong 删除索引
+        p 使用方法<code>dropIndex()</code>可以删除索引。
+        p
+            strong
+                small 删除指定索引
+        p 使用方法<code>db.collection.dropIndex()</code>可以删除一个索引。
+        p 例如，下例删除了集合<code>accounts</code>中<code>tax-id</code>字段上的升序索引：
+        p
+            code db.accounts.dropIndex({'tax-id': 1})
+        p 上述操作返回如下信息：
+        p
+            code { "nIndexesWas" : 3, "ok" : 1 }
+        p 其中，<code>nIndexesWas</code>表示执行索引删除操作之前集合中索引的总数。
+        p
+            strong
+                small 删除所有索引
+        p 使用方法<code>db.collection.dropIndexes()</code>可以删除集合中<code>_id</code>索引除外的所有索引。
+        strong 修改索引
+        p 如果需要修改一个已存在的索引，需要先删除、再重建索引。
+        ol
+            li 创建一个唯一性索引
+                p 使用方法<code>ensureIndex()</code>创建一个唯一性索引：
+                p
+                    code db.orders.ensureIndex({'cust_id': 1, 'ord_date': -1, 'items': 1}, {unique: true})
+                p 上述方法只会在索引不存在时创建新索引。
+            li 尝试修改索引
+                p 如果需要修改已存在的索引，不能简答的使用<code>ensureIndex()</code>方法。
+                p 例如，下述语句修改了步骤1中创建的唯一性索引，去掉另外索引的唯一性约束：
+                p
+                    code db.orders.ensureIndex({'cust_id': 1, 'ord_date': -1, 'items': 1})
+                p 上述语句会返回一个错误。
+            li 删除索引
+                p 首先，使用如下语句删除已存在的索引：
+                p
+                    code db.orders.dropIndex({'cust_id': 1, 'ord_date': -1, 'items': 1})
+            li 根据需求重新创建索引
+                p 然后，使用如下语句重新创建新的索引：
+                p
+                    code db.orders.ensureIndex({'cust_id': 1, 'ord_date': -1, 'items': 1})
+        strong 重建索引
+        p 如果需要重建某个集合的索引，
+
