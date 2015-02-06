@@ -9,3 +9,203 @@ block content
                 a(href='/mongoDB/index') 索引
             li.active 参考资料
         h3 8.4&emsp;参考资料
+        p 本节主要包含以下内容：
+        ul
+            li
+                a(href='#section841') 8.4.1&emsp;在<code>mongo</code> shell中关于索引的方法
+            li
+                a(href='#section842') 8.4.2&emsp;数据库中关于索引的命令
+            li
+                a(href='#section843') 8.4.3&emsp;空间坐标的查询选择符
+            li
+                a(href='#section844') 8.4.4&emsp;索引查询修正符
+            li
+                a(href='#section845') 8.4.5&emsp;其他索引相关内容
+        h4#section841 8.4.1&emsp;在<code>mongo</code> shell中关于索引的方法
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='30%') 方法名称
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code db.collection.createIndex()
+                        td 在集合上创建索引，请使用方法<code>db.collection.ensureIndex()</code>
+                    tr
+                        td
+                            code db.collection.dropIndex()
+                        td 删除集合上的指定索引
+                    tr
+                        td
+                            code db.collection.dropIndexes()
+                        td 删除集合上的所有索引
+                    tr
+                        td
+                            code db.collection.ensureIndex()
+                        td 在集合上创建索引，如果索引不存在则创建，如果索引存在则不执行任何动作
+                    tr
+                        td
+                            code db.collection.getIndexes()
+                        td 返回集合上的索引列表
+                    tr
+                        td
+                            code db.collection.getIndexStats()
+                        td 以人可读的格式返回命令<code>indexStats</code>收集的关于索引树的统计数据
+                    tr
+                        td
+                            code db.collection.indexStats()
+                        td 以人可读的格式返回命令<code>indexStats</code>收集的关于索引树的统计数据
+                    tr
+                        td
+                            code db.collection.reIndex()
+                        td 重建集合上的所有索引
+                    tr
+                        td
+                            code db.collection.totalIndexSize()
+                        td 返回集合上索引的总大小。
+                    tr
+                        td
+                            code cursor.explain()
+                        td 返回查询语句的执行计划
+                    tr
+                        td
+                            code cursor.hint()
+                        td 强制查询语句使用某个索引
+                    tr
+                        td
+                            code cursor.max()
+                        td Specifies an exclusive upper index bound for a cursor. For use with cursor.hint()
+                    tr
+                        td
+                            code cursor.min()
+                        td Specifies an inclusive lower index bound for a cursor. For use with cursor.hint()
+                    tr
+                        td
+                            code cursor.snapshot()
+                        td 强制指针使用<code>_id</code>字段上的索引。强制指针依据<code>_id</code>字段的值，对于每个文档至返回一次。
+        h4#section842 8.4.2&emsp;数据库中关于索引的命令
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='30%') 命令
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code createIndexes
+                        td 在集合上创建一个或多个索引
+                    tr
+                        td
+                            code dropIndexes
+                        td 删除集合上的索引
+                    tr
+                        td
+                            code compact
+                        td 重新整理集合，并且重建索引
+                    tr
+                        td
+                            code reIndex
+                        td 重建集合上的所有索引
+                    tr
+                        td
+                            code validate
+                        td 内部命令，用于遍历集合数据和索引，以验证正确与否
+                    tr
+                        td
+                            code indexStats
+                        td 试验性的命令，收集所有索引的统计数据
+                    tr
+                        td
+                            code geoNear
+                        td 空间查询，用于返回指定坐标附近的坐标
+                    tr
+                        td
+                            code geoSearch
+                        td 空间查询，使用MongoDB的<var>haystack</var>索引的功能
+                    tr
+                        td
+                            code geoWalk
+                        td 用于支持空间查询的内部命令
+                    tr
+                        td
+                            code checkShardingIndex
+                        td 用于验证分片键上的索引的内部命令
+        h4#section843 8.4.3&emsp;空间坐标的查询选择符
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='30%') 操作符
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code $geoWithin
+                        td 获取一个GeoJSON几何图形内部的元素
+                    tr
+                        td
+                            code $geoIntersects
+                        td 获取和一个GeoJSON几何图形相交的元素
+                    tr
+                        td
+                            code $near
+                        td 获取指定点附近的元素
+                    tr
+                        td
+                            code $nearSphere
+                        td 获取定点附近的元素（针对球面而言）
+        h4#section844 8.4.4&emsp;索引查询修正符
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='30%') 操作符
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code $explain
+                        td 获取查询语句的执行计划
+                    tr
+                        td
+                            code $hint
+                        td 强制MongoDB使用指定的索引
+                    tr
+                        td
+                            code $max
+                        td Specifies an exclusive upper limit for the index to use in a query. See max().
+                    tr
+                        td
+                            code $min
+                        td Specifies an inclusive lower limit for the index to use in a query. See min().
+                    tr
+                        td
+                            code $returnKey
+                        td 强制指针只返回索引包含的字段
+                    tr
+                        td
+                            code $snapshot
+                        td 强制查询语句使用字段<code>_id</code>上的索引
+        h4#section845 8.4.5&emsp;其他索引相关内容
+        strong 文本索引支持的语言
+        p 对于文本索引，<code>$text</code>操作符和<code>text</code>命令，支持以下语言：
+        p 版本2.6中发生了改变：MongoDB引入了文本搜索的版本2特性。使用版本2，文本搜索支持ISO 639-1中的两个字符。
+        ul
+            li da or danish
+            li nl or dutch
+            li en or english
+            li fi or finnish
+            li fr or french
+            li de or german
+            li hu or hungarian
+            li it or italian
+            li nb or norwegian
+            li pt or portuguese
+            li ro or romanian
+            li ru or russian
+            li es or spanish
+            li sv or swedish
+            li tr or turkish

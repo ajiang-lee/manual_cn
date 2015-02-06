@@ -243,5 +243,317 @@ block content
                 p
                     code db.orders.ensureIndex({'cust_id': 1, 'ord_date': -1, 'items': 1})
         strong 重建索引
-        p 如果需要重建某个集合的索引，
+        p 如果需要重建某个集合的索引，可以使用方法<code>db.collection.reIndex()</code>，该方法在单个操作中重建集合的所有索引。
+            | 该方法会删除集合上的所有索引，包括<code>_id</code>索引，然后重建删除的索引。
+        p
+            strong
+                small 处理步骤
+        p 使用如下语句重建集合索引：
+        p
+            code db.accounts.reIndex();
+        p 当上述语句执行完成后，会返回如下的结果文档：
+        p
+            code {<br/>
+            code.two 'nIndexesWa': 2,<br/>
+            code.two 'msg': 'indexes dropped for collection',<br/>
+            code.two 'nIndexes': 2,<br/>
+            code.two 'indexes': [<br/>
+            code.three {<br/>
+            code.four 'key': {'_id': 1, 'tax-id': 1},<br/>
+            code.four 'ns': 'records.accounts',<br/>
+            code.four 'name': '_id_'<br/>
+            code.three }<br/>
+            code.two ],<br/>
+            code.two 'ok': 1<br/>
+            code }
+        p 该方法是命令<code>reIndex</code>的包装方法，如果需要在应用程序中重建方法，请查看驱动程序的API方法。
+        strong 管理创建过程中的索引
+        p 可以在<code>mongo</code> shell中通过方法<code>db.currentOp()</code>查看索引创建的状态。字段<code>query、msg</code>的值意味着索引是否正在创建。
+            | <code>msg</code>字段的值意味着索引完成的比例。
+        p 可以在<code>mongo</code> shell中通过方法<code>db.killOp()</code>终止索引的创建。
+        p 版本2.4中发生了改变：在MongoDB2.4之前，只能终止正在后台创建的索引。版本2.4之后（包含2.4版本），可以终止任何正在创建的索引，包括正在前台创建的索引。
+        strong 返回索引列表
+        p 在进行日常维护时，可能需要检查一个集合上的索引情况。对于集合上的每个索引，在集合<code>system.indexes</code>中都存在对应的记录，
+            | 可以使用<code>db.system.indexes.find()</code>查询，或者使用<code>getIndexes()</code>方法获取某个集合上的索引。
+        p
+            strong
+                small 查看一个集合上的索引列表
+        p 使用方法<code>db.collection.getIndexes()</code>可以获得某个集合上的索引列表，如下所示：
+        p
+            code db.people.getIndexes()
+        p
+            strong
+                small 查看一个数据库的索引列表
+        p 为了获得某个数据库的所有索引，可以针对集合<code>system.indexes</code>进行查询，如下所示：
+        p
+            code db.system.indexes.find()
+        strong 测量索引的使用
+        p
+            strong
+                small 简介
+        p 查询语句的性能能够很直观的反应索引的使用情况。但是，为了更深入的了解索引的使用情况，MongoDB提供了一些工具允许查看数据库中索引的使用情况。
+        p
+            strong
+                small 操作
+        ul
+            li
+                strong 使用方法<code>explain()</code>获取查询计划
+                p 使用方法<code>explain()</code>可以获得一个查询语句的查询计划，返回结果中包含查询语句有关的统计信息，
+                    | 包含索引的使用情况、遍历的文档数量，以及查询语句消耗的毫秒数。
+            li
+                strong 使用<code>hint()</code>控制索引的使用
+                p 使用方法<code>hint()</code>可以强制查询语句使用某个索引，如下所示：
+                p
+                    code db.people.find( { name: "John Doe", zipcode: { $gt: "63000" } } ).hint( { zipcode: 1 } )
+                p 通过结合使用方法<code>explain()</code>和<code>hint()</code>，对比不同的索引，进而得到索引的优劣。
+                    | 如果在方法<code>hint()</code>中指定<code>$natural</code>选项，则指示MongoDB不适用任何索引，如下所示：
+                p db.people.find( { name: "John Doe", zipcode: { $gt: "63000" } } ).hint( { $natural: 1 } )
+            li
+                strong 相关的报表输出
+                p MongoDB提供的一些元信息相关的报表操作，可以一窥索引的相关信息：
+                ul
+                    li <code>serverStatus</code>的输出结果中字段：<code>indexCounters、scanned、scanAndOrder</code>
+                    li <code>collStats</code>的输出结果中字段：<code>totalIndexSize、indexSizes</code>
+                    li <code>dbStats</code>的输出结果中字段：<code>dbStats.indexes、dbStats.indexSize</code>
+        h4#section833 8.3.3&emsp;空间索引
+        p 本小节内容详细介绍了如何创建、查询<code>2d、2dsphere、haystack</code>索引。
+        strong 创建2dsphere索引
+        p 如果需要为GeoJSON格式的数据创建空间索引，可以使用方法<code>db.collection.ensureIndex()</code>创建<code>2dsphere</code>索引。
+            | 具体用法如下所示：
+        p
+            code db.collection.ensureIndex({'location_field': '2dsphere'})
+        p 以下处理步骤展示了如果构造GeoJSON格式的文档数据，以及如何创建2dsphere索引。
+        p
+            strong
+                small 处理步骤
+        p 首先，构造用于存储位置信息的<code>places</code>集合，其中位置信息以GeoJSON格式存储：
+        p
+            code db.places.insert(<br/>
+            code.two {<br/>
+            code.three loc : { type: "Point", coordinates: [ -73.97, 40.77 ] },<br/>
+            code.three name: "Central Park",<br/>
+            code.three category : "Parks"<br/>
+            code.two }<br/>
+            code )<br/>
+            code db.places.insert(<br/>
+            code.two {<br/>
+            code.three loc : { type: "Point", coordinates: [ -73.88, 40.78 ] },<br/>
+            code.three name: "La Guardia Airport",<br/>
+            code.three category : "Airport"<br/>
+            code.two }<br/>
+            code )
+        p 然后，在字段<code>loc</code>上创建2dsphere索引：
+        p
+            code db.places.ensureIndex({'loc': '2dsphere'})
+        p 复合索引可以包含一个2dsphere索引键和任意非空间索引键。例如，如下实例的复合索引：
+        p
+            code db.places.ensureIndex({loc: '2dsphere', category: -1, name: 1})
+        p 和2d索引不同，2dsphere复合索引不需要位置字段必须是复合索引中的第一个字段，如下所示：
+        p
+            code db.places.ensureIndex({category: 1, loc: '2dsphere'})
+        p
+            strong
+                small 其他考虑
+        p <code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段要求一个集合最多只能有一个2dsphere索引和（或者）一个2d索引，
+            | 但是空间查询操作符（即：<code>$near、$geoWithin</code>）允许集合拥有多个空间索引。
+        p 对于<code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段之所以存在上述限制，
+            | 是因为<code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段均不包含位置信息字段，因此，
+            | 如果存在多个空间索引，则对于如何选择索引会产生混淆。
+        p 而对于空间查询操作符（即：<code>$near、$geoWithin</code>），因为这些操作符均包含位置信息字段，不存在选择混淆的问题。
+        p 如果需要使用<code>geoNear</code>命令和<code>$geoNear</code>管道处理阶段，请确保集合上只存在单个空间索引。
+        strong 查询2dsphere索引
+        p 下述示例展示了使用2dsphere索引的查询语句。
+        .panel.panel-default
+            .panel-heading
+                strong 查询一个多边形包围的GeoJSON对象
+            .panel-body
+                p <code>$geoWithin</code>查询操作符用于查询位于一个GeoJSON多边形内的数据，位置信息必须以<code>GeoJSON</code>格式存储，语法如下：
+                p
+                    code db.collection.find({<br/>
+                    code.two 'location_field': {<br/>
+                    code.three $geoWithin: {<br/>
+                    code.four $geometry: {<br/>
+                    code.five type: 'Polygon',<br/>
+                    code.five coordinates: [坐标对]<br/>
+                    code.four }<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+                p 示例程序如下：
+                p
+                    code db.places.find({<br/>
+                    code.two 'loc': {<br/>
+                    code.three $geoWithin: {<br/>
+                    code.four $geometry: {<br/>
+                    code.five type: 'Polygon',<br/>
+                    code.five coordinates: [[[0, 0], [3, 6], [6, 1], [0, 0]]]<br/>
+                    code.four }<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+        .panel.panel-default
+            .panel-heading
+                strong GeoJSON对象的交集(版本2.4新特性)
+            .panel-body
+                p <code>$geoIntersects</code>操作符用于获取与一个指定GeoJSON对象相交的位置信息。如果相交部分不为空，
+                    | 则说明与指定GeoJSON对象存在交集，交集部分包含共享边。
+                p <code>$geoIntersects</code>操作符的语法如下：
+                p
+                    code db.collection.find({<br/>
+                    code.two 'location_field': {<br/>
+                    code.three $geoIntersects: {<br/>
+                    code.four $geometry: {<br/>
+                    code.five type: 'GeoJSON_Object_Type',<br/>
+                    code.five coordinates: [坐标对]<br/>
+                    code.four }<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+                p 示例程序如下：
+                p
+                    code db.places.find({<br/>
+                    code.two 'loc': {<br/>
+                    code.three $geoIntersects: {<br/>
+                    code.four $geometry: {<br/>
+                    code.five type: 'Polygon',<br/>
+                    code.five coordinates: [[[0, 0], [3, 6], [6, 1], [0, 0]]]<br/>
+                    code.four }<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+        .panel.panel-default
+            .panel-heading
+                strong 一个GeoJSON点附近的位置
+            .panel-body
+                p 搜附近查询用于获取一个指定坐标点附近的坐标信息，并按照距离的远近排序返回。在GeoJSON格式的数据上执行搜附近查询需要<code>2dsphere</code>索引的支持。
+                p 可以使用<code>$near</code>操作符和<code>geoNear</code>命令获取一个指定GeoJSON坐标点附近的坐标信息。<code>$near</code>操作符的语法如下：
+                p
+                    code db.collection.find({<br/>
+                    code.two 'location_field': {<br/>
+                    code.three $near: {<br/>
+                    code.four $geometry: {<br/>
+                    code.five type: 'Point',<br/>
+                    code.five coordinates: [坐标对]<br/>
+                    code.four },<br/>
+                    code.four $maxDistance: 最大距离（以米为单位）<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+                p 命令<code>geoNear</code>的语法如下：
+                p
+                    code db.runCommand({<br/>
+                    code.two geoNear: '集合名称',
+                    code.two near: {<br/>
+                    code.three type: 'Point',<br/>
+                    code.three coordinates: [坐标对]<br/>
+                    code.two },<br/>
+                    code.two spherical: true<br/>
+                    code })
+                strong 获取球面上一个圆形内的点
+                p 可以使用带有<code>$centerSphere</code>操作符的<code>$geoWithin</code>来获取一个球面上一个圆形区域的所有坐标点，
+                    | 其中，<code>$centerSphere</code>操作符接受一个数组，该数组包含：
+                    ul
+                        li 圆形区域的中心坐标点
+                        li 以弧度测量的圆半径
+                p 语法如下：
+                p
+                    code db.collection.find({<br/>
+                    code.two 'location_field': {<br/>
+                    code.three $geoWith: {<br/>
+                    code.four $centerSphere: [[坐标对], 弧度半径]<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+                p 如下示例程序获取以西经88度北纬30度为中心，10英里为半径范围内的坐标信息。其中，10英里对应的弧度半径为：10/3959（3959表示的是地球的近似半径，以英里计算）
+                p
+                    code db.places.find({<br/>
+                    code.two 'blockquote': {<br/>
+                    code.three $geoWith: {<br/>
+                    code.four $centerSphere: [[-88, 30], 10/3959]<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+        strong 创建2d索引
+        p 可以使用方法<code>ensureIndex()</code>创建2d索引，语法如下：
+        p
+            code db.collection.ensureIndex(<br/>
+            code.two {<br/>
+            code.three 'location_field': '2d',<br/>
+            code.three 'additinal_field': 'value'<br/>
+            code.two },<br/>
+            code.two {<br/>
+            code.three min: 坐标下限,<br/>
+            code.three max: 坐标上限,<br/>
+            code.three bits: 位精度<br/>
+            code.two }<br/>
+            code )
+        p
+            strong
+                small 指定2d索引的经纬度范围
+        p 默认情况下，2d索引的经纬度的范围为：[-180, 180)。如果文档包含的坐标信息超出上述范围，MongoDB返回错误信息。
+        p 如果需要自定义经纬度的范围，可以使用<code>max、min</code>选项，如下所示：
+        p
+            code db.collection.ensureIndex(<br/>
+            code.two {<br/>
+            code.three 'location_field': '2d'<br/>
+            code.two },<br/>
+            code.two {<br/>
+            code.three min: 坐标下限,<br/>
+            code.three max: 坐标上限<br/>
+            code.two }<br/>
+            code )
+        p
+            strong
+                small 指定2d索引的经纬度的精度
+        p 默认情况下，使用传统坐标对的2d索引的精度为26位，大致相当于2英尺或者60厘米的精度。精度是使用<var>geohash</var>的值的位数来测量的。
+            | 可以将该精度提升到32位。
+        p 索引的精度并不会影响查询的精度，因为实际的经纬度坐标对总是被查询语句计算。低精度的优势是降低插入操作的负担，以及节省存储空间。
+            | 高精度的优势是查询语句可以使用较少范围的索引数据返回结果集。
+        p 可以使用如下语句调整索引的精度：
+        p
+            code db.collection.ensureIndex(<br/>
+            code.two {<br/>
+            code.three 'location_field': '2d'<br/>
+            code.two },<br/>
+            code.two {<br/>
+            code.three bits: 位精度<br/>
+            code.two }<br/>
+            code )
+        p
+            strong
+                small 查询2d索引
+        p 下述示例展示了使用2d索引的查询语句。
+        .panel.panel-default
+            .panel-heading
+                strong 获取平面几何上一个几何图形中的点
+            .panel-body
+                p 使用带有图形指定符的<code>$geoWithin</code>操作符，可以获取平面几何中一个指定图形内的坐标点信息，语法如下：
+                p
+                    code db.collection.find({<br/>
+                    code.two 'location_field': {<br/>
+                    code.three $geoWithin: {<br/>
+                    code.four $box | $polygon | $center: 坐标<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+                p 以下示例查询用于获取一个矩形中的文档记录，该矩形的左下点坐标为：[0, 0]，右上点坐标为：[100, 100]：
+                p
+                    code db.places.find({<br/>
+                    code.two loc: {<br/>
+                    code.three $geoWithin: {<br/>
+                    code.four $box: [[0, 0], [100, 100]]<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+                p 以下示例查询用于获取一个圆形中的文档记录，该圆形的圆心坐标为：[-74, 40.74]，半径为：10：
+                p
+                    code db.places.find({<br/>
+                    code.two loc: {<br/>
+                    code.three $geoWithin: {<br/>
+                    code.four $center: [[-74, 40.74], 10]<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+
+
 
