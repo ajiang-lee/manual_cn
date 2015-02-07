@@ -459,7 +459,7 @@ block content
                 p
                     code db.collection.find({<br/>
                     code.two 'location_field': {<br/>
-                    code.three $geoWith: {<br/>
+                    code.three $geoWithin: {<br/>
                     code.four $centerSphere: [[坐标对], 弧度半径]<br/>
                     code.three }<br/>
                     code.two }<br/>
@@ -467,8 +467,8 @@ block content
                 p 如下示例程序获取以西经88度北纬30度为中心，10英里为半径范围内的坐标信息。其中，10英里对应的弧度半径为：10/3959（3959表示的是地球的近似半径，以英里计算）
                 p
                     code db.places.find({<br/>
-                    code.two 'blockquote': {<br/>
-                    code.three $geoWith: {<br/>
+                    code.two 'loc': {<br/>
+                    code.three $geoWithin: {<br/>
                     code.four $centerSphere: [[-88, 30], 10/3959]<br/>
                     code.three }<br/>
                     code.two }<br/>
@@ -554,6 +554,194 @@ block content
                     code.three }<br/>
                     code.two }<br/>
                     code })
-
-
-
+        .panel.panel-default
+            .panel-heading
+                strong 获取球面上一个圆形区域中的点
+            .panel-body
+                p 由于遗留数据的原因，MongoDB支持在2d索引上进行基本的球形坐标查询。通常来讲，球形计算应该使用2dsphere索引。
+                p 如果需要在一个球面上查询传统坐标对的数据，需要使用带有操作符<code>$centerSphere</code>的<code>$geoWithin</code>，
+                    | <code>$geoWithin</code>接受一个数组，该数组包含以下内容：
+                    ul
+                        li 球心的坐标
+                        li 球的半径，以弧度计算。
+                p 语法如下：
+                p
+                    code db.collection.find({<br/>
+                    code.two 'location_field': {<br/>
+                    code.three $geoWithin: {<br/>
+                    code.four $centerSphere: [[x, y], 弧度半径]<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+                p 下例获取以西经88度北纬30度为圆形，10英里范围内的坐标：
+                p
+                    code db.places.find({<br/>
+                    code.two 'loc': {<br/>
+                    code.three $geoWithin: {<br/>
+                    code.four $centerSphere: [[-88, 30], 10/3959]<br/>
+                    code.three }<br/>
+                    code.two }<br/>
+                    code })
+        .panel.panel-default
+            .panel-heading
+                strong 获取平面几何中一个点附近的坐标
+            .panel-body
+                p 范围查询返回距离指定坐标点最近的100个坐标对，并且按照距离远近排序返回，使用<code>$near</code>操作符或者<code>geoNear</code>命令，
+                    | 但是都需要一个2d索引；语法如下：
+                p
+                    code db.collection.find({<br/>
+                    code.two 'location_field': {<br/>
+                    code.three $near: [x, y]<br/>
+                    code.two }<br/>
+                    code })
+                p <code>geoNear</code>命令的语法为：
+                p
+                    code db.runCommand( { geoNear: <collection>, near: [ x , y ] } )
+        .panel.panel-default
+            .panel-heading
+                strong 精确匹配平面几何中的位置
+            .panel-body
+                p 版本2.6中发生了改变：在之前的版本中，2d索引支持坐标对的精确匹配。
+                p 不能使用2d索引返回精确匹配的坐标对，使用普通的升序/降序索引完成坐标对的精确匹配。
+                p 在下例中，<code>find()</code>方法，如果存在索引<code>{'loc': 1}</code>，可以返回一个精确匹配的索引：
+                p
+                    code db.collection.find({loc: [x, y]})
+                p 上述查询会返回任何包含<code>[x, y]</code>的文档。
+        strong 创建Haystack索引
+        p 一个haystack索引必须关联两个字段：位置信息字段和第二个字段，第二个字段用于精确匹配。Haystack索引依据位置信息和附加的一个过滤条件返回结果文档。
+            | 这些索引并不一定适合用于获取距离一个指定位置最近的文档。
+        p 使用如下语法创建haystack索引：
+        p
+            code db.collection.ensureIndex(<br/>
+            code.two {<br/>
+            code.three 'location_field': 'geoHaystack',<br/>
+            code.three 'additinal_field': 1,<br/>
+            code.two },<br/>
+            code.two {bucketSize: bucket_value}<br/>
+            code )
+        p 创建haystack索引时，必须指定<code>bucketSize</code>选项。
+            | 一个<code>bucketSize</code>值为5的haystack索引会将与某个特定位置的经度，纬度相差5个单位以内的所有位置都放在同一个区域组内。
+            | <code>bucketSize</code>决定了索引的粒度。可以调整这个参数以适应数据分布，这样查询在通常情况下将只需要搜索非常小的区域。
+            | 由<code>bucketSize</code>确定的区域是可以互相覆盖的，单个文档可以出现在多个bucket中。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 如果某个集合包含如下结构的文档：
+                p
+                    code { _id : 100, pos: { lng : 126.9, lat : 35.2 } , type : "restaurant"}<br/>
+                    code { _id : 200, pos: { lng : 127.5, lat : 36.1 } , type : "restaurant"}<br/>
+                    code { _id : 300, pos: { lng : 128.0, lat : 36.7 } , type : "national park"}
+                p 如下语句将会创建一个haystack索引，该索引的每个bucket存储键值的经度或维度相差1个单位。
+                p
+                    code db.places.ensureIndex( { pos : "geoHaystack", type : 1 } , { bucketSize : 1 } )
+                p 上述语句创建的索引中，<code>_id</code>值为<code>200</code>的文档在两个bucket中都存在相应的索引条目：
+                    ul
+                        li 包含<code>_id</code>值为<code>100</code>的文档的bucket
+                        li 包含<code>_id</code>值为<code>300</code>的文档的bucket
+        p 可以通过<code>geoSearch</code>命令使用haystack索引。
+        p 默认情况下，使用haystack索引的查询语句返回50个匹配的文档。
+        p
+            strong
+                small 查询haystack索引
+        p haystack索引是经过优化的特殊2d空间索引，用于返回较小范围的结果集。
+        p 可以使用<code>geoSearch</code>命令查询haystack索引，查询时，必须指定位置字段和额外的第二个匹配字段。例如：
+            | 为了获取<code>type</code>字段值为<code>restaurant</code>，并且在指定坐标附近的文档，可以使用如下语句：
+        p
+            code db.runCommand( { geoSearch : "places" , search : { type: "restaurant" } , near : [-74, 40.74] , maxDistance : 10 } )
+        .alert.alert-danger Haystack索引不适合用于获取指定坐标附近所有位置的查询。最近点的距离有可能会大于bucketsize。
+            p haystack索引不支持球面查询。方法<code>find()</code>和<code>geoNear</code>命令不能使用haystack索引。
+        strong 计算球面几何上坐标的距离
+        .alert.alert-info 虽然2d索引支持球面距离的计算，但是如果数据都是经纬度坐标对，可以考虑将2d索引转换成2dsphere索引。
+        p 2d索引支持在平面几何计算距离的查询，同时支持使用如下方法和命令在球面几何上计算距离：
+            ul
+                li
+                    code $nearSphere
+                li
+                    code $centerSphere
+                li
+                    code $near
+                li  带有选项<code>{spherical: true}</code>的<code>geoNear</code>命令
+        .alert.alert-danger
+            p 上述三个查询操作符使用弧度距离进行计算，其他的查询操作符不是。
+            p 为了使球面查询操作符的计算结果正确，必须将距离转换为弧度距离进行计算，然后将弧度距离转换为应用程序使用的距离单位。
+            p 转换规则：
+                ul
+                    li
+                        strong 距离到弧度
+                        p 用距离除以球面的半径（即：地球的半径），两者的单位必须保持一致
+                    li
+                        strong 弧度到距离
+                        p 用弧度乘以球面的半径（即：地球的半径），其中球面半径的单位取决于应用程序需要的单位
+            p 地球的半径近似值为：3959英里，或者6371千米。
+        p 下述查询语句返回集合<code>places</code>中以<code>[-74, 40.74]</code>为圆心，100英里为半径范围内的文档：
+        p
+            code db.places.find({<br/>
+            code.two 'loc': {<br/>
+            code.three $geoWithin: {<br/>
+            code.four $centerSphere: [[-74, 40.74], 100/3959]<br/>
+            code.three }<br/>
+            code.two }<br/>
+            code })
+        p 可以使用带有<code>distanceMultiplier</code>选项的<code>geoNear</code>命令在<code>mongod</code>中自动完成距离到弧度的转换，
+            | 而不需要在应用程序中手动转换。
+        p 下例球面查询返回集合<code>places</code>中以<code>[-74, 40.74]</code>为圆心，100英里为半径范围内的文档：
+        p
+            code db.runCommand({geoNear: 'places', near: [-74, 40.74], spherical: true})
+        p 上述命令的返回结果可能为：
+        p
+            code {<br/>
+            code.two // [...]<br/>
+            code.two 'results': [<br/>
+            code.three {<br/>
+            code.four 'dis': 0.01853688938212826,<br/>
+            code.four 'obj': {<br/>
+            code.five '_id': ObjectId(...),<br/>
+            code.five 'loc': [-73, 40]<br/>
+            code.four }<br/>
+            code.three }<br/>
+            code.two ],<br/>
+            code.two 'stats': {<br/>
+            code.three // [...]<br/>
+            code.three 'avgDistance': 0.01853688938212826,<br/>
+            code.three 'maxDistance': 0.01853714811400047<br/>
+            code.two },<br/>
+            code.two 'ok': 1<br/>
+            code }
+        .alert.alert-danger 球面查询中的条件如果环绕着南/北极或者在-180到180经度的交界过渡区，会导致错误。
+        .alert.alert-info 虽然空间索引默认的类地球球面边界是大于等于-180到小于180间，纬度的合理值却是在-90到90间。
+        p
+            strong
+                small 距离系数
+        p 带有<code>distanceMultiplier</code>选项的<code>geoNear</code>命令可以在将结果和给定值相乘后再返回。
+            | 这可以让MongoDB返回转换后的值，避免了在应用逻辑中转换单位的需要。
+        p 在球面查询中使用<code>distanceMultiplier</code>选项会返回和<code>geoNear</code>命令相同的结果，
+            | 都不需要进行弧度到距离的转换。
+            | 如下示例中，在<code>geoNear</code>命令中使用<code>distanceMultiplier、spherical</code>选项：
+        p
+            code db.runCommand( { <br/>
+            code.two geoNear: "places",<br/>
+            code.two near: [ -74, 40.74 ],<br/>
+            code.two spherical: true,<br/>
+            code.two distanceMultiplier: 3959<br/>
+            code } )
+        p 上述命令的返回结果可能为：
+        p
+            code {<br/>
+            code.two // [...]<br/>
+            code.two 'results': [<br/>
+            code.three {<br/>
+            code.four 'dis': 0.01853688938212826,<br/>
+            code.four 'obj': {<br/>
+            code.five '_id': ObjectId(...),<br/>
+            code.five 'loc': [-73, 40]<br/>
+            code.four }<br/>
+            code.three }<br/>
+            code.two ],<br/>
+            code.two 'stats': {<br/>
+            code.three // [...]<br/>
+            code.three 'avgDistance': 0.01853688938212826,<br/>
+            code.three 'maxDistance': 0.01853714811400047<br/>
+            code.two },<br/>
+            code.two 'ok': 1<br/>
+            code }
+        h4#section835 8.3.5&emsp;索引策略
