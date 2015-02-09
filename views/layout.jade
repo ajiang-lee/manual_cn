@@ -14,6 +14,14 @@ html(lang='zh-cn')
         document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F469c4e7d28ba4caf0ac753140c16cf98' type='text/javascript'%3E%3C/script%3E"));
   body
     include ./nav
+    a#aboutUs(href='#', style='position:absolute')
+        span.glyphicon.glyphicon-user(style='font-size:30px;')
+    a#history(href='#', style='position:absolute')
+        span.glyphicon.glyphicon-th-list(style='font-size:30px;')
+    a#goBack(href='javascript:history.back();', style='display:none;position:absolute')
+        span.glyphicon.glyphicon-circle-arrow-left(style='font-size:30px;')
+    a#scrollToTop(href='javascript:void(0);', style='display:none;position:absolute')
+        span.glyphicon.glyphicon-circle-arrow-up(style='font-size:30px;')
     block content
     script.
         $('img[src="http://eiv.baidu.com/hmt/icon/21.gif"]').hide();
