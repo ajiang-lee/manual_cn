@@ -1,6 +1,6 @@
 $(function() {
     var anchor = $("#anchor").val();
-    if (anchor) {
+    if (anchor && $("#" + anchor).offset()) {
         // 定位到锚点
         var top = $("#" + anchor).offset().top;
         var height = $("#" + anchor).height();
