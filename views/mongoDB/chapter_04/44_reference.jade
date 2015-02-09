@@ -328,69 +328,70 @@ block content
         h4#section445 4.4.5&emsp;BSON类型
         p BSON是一个二进制序列化格式，在MongoDB中用于存储文档数据，并且可以用于远程过程调用。关于BSON的定义可以参考<a href='http://bsonspec.org' target='_blank'>bsonspec.org</a>。
         p BSON支持以下数据类型。每种数据类型都有一个对应的数字标识，可以在过滤条件中通过<code>$type</code>操作符用于指定字段的数据类型。
-            table.table.table-bordered
-                thead
-                    tr
-                        th 类型
-                        th 代表数字
-                tbody
-                    tr
-                        td Double
-                        td 1
-                    tr
-                        td String
-                        td 2
-                    tr
-                        td Object
-                        td 3
-                    tr
-                        td Array
-                        td 4
-                    tr
-                        td Binary data
-                        td 5
-                    tr
-                        td Undefined
-                        td 6
-                    tr
-                        td Object id
-                        td 7
-                    tr
-                        td Boolean
-                        td 8
-                    tr
-                        td Date
-                        td 9
-                    tr
-                        td Null
-                        td 10
-                    tr
-                        td Regular Expression
-                        td 11
-                    tr
-                        td JavaScript
-                        td 13
-                    tr
-                        td Symbol
-                        td 14
-                    tr
-                        td JavaScript(with scope)
-                        td 15
-                    tr
-                        td 32-bit integer
-                        td 16
-                    tr
-                        td Timestamp
-                        td 17
-                    tr
-                        td 64-bit integer
-                        td 18
-                    tr
-                        td Min key
-                        td 255
-                    tr
-                        td Max key
-                        td 127
+            .table-responsive
+                table.table.table-bordered
+                    thead
+                        tr
+                            th 类型
+                            th 代表数字
+                    tbody
+                        tr
+                            td Double
+                            td 1
+                        tr
+                            td String
+                            td 2
+                        tr
+                            td Object
+                            td 3
+                        tr
+                            td Array
+                            td 4
+                        tr
+                            td Binary data
+                            td 5
+                        tr
+                            td Undefined
+                            td 6
+                        tr
+                            td Object id
+                            td 7
+                        tr
+                            td Boolean
+                            td 8
+                        tr
+                            td Date
+                            td 9
+                        tr
+                            td Null
+                            td 10
+                        tr
+                            td Regular Expression
+                            td 11
+                        tr
+                            td JavaScript
+                            td 13
+                        tr
+                            td Symbol
+                            td 14
+                        tr
+                            td JavaScript(with scope)
+                            td 15
+                        tr
+                            td 32-bit integer
+                            td 16
+                        tr
+                            td Timestamp
+                            td 17
+                        tr
+                            td 64-bit integer
+                            td 18
+                        tr
+                            td Min key
+                            td 255
+                        tr
+                            td Max key
+                            td 127
         strong 对比和排序
         p 当比较BSON不同数据类型的数据时，MongoDB使用如下的比较顺序（从低到高）：
             ol

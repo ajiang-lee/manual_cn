@@ -744,4 +744,269 @@ block content
             code.two },<br/>
             code.two 'ok': 1<br/>
             code }
+        h4#section834 8.3.4&emsp;文本搜索索引
+        p 翻译中。。。
         h4#section835 8.3.5&emsp;索引策略
+        p 为应用程序建立索引时需要考虑多方面的因素，包括常用查询的类型，应用程序的读写比例，以及操作系统的可用内存量。
+        p 当制定索引策略时，必须对应用程序用到的查询语句进行深入分析。在建立索引之前，列出应用程序中使用到的查询语句，交叉对比这些查询语句，
+            | 然后在最频繁的查询字段上创建合适的索引。虽然索引对数据库的写操作存在副作用，但是相对于大数据量的常用查询而言，会明显提高这些查询语句的性能，
+            | 所以，相对于写操作，查询语句性能的提升还是值得的。总而言之，在创建索引之前，需要充分分析应用程序的常用查询语句，
+            | 以使建立的索引能够最大程度的满足。
+        p 建立索引的最优策略是通过分析查询语句，先列出不同的索引建立清单，然后在相同的数据集上通过对比这些不同索引的实际运行效果，
+            | 最终决定使用最优的索引。另外，在应用程序的运行周期内，需要定期检测索引的使用情况，如果发现索引不再适合查询语句，需要及时调整，
+            | 如果发现有些索引不再被查询语句引用，应该及时删除相应的索引。
+        p MongoDB可以使用单个索引支持多个给定的操作，但是，每个<code>$or</code>查询子句可能会使用不同的索引。
+        strong 创建索引以支持查询语句
+        p 当索引包含查询语句需要遍历的所有字段时，查询语句执行时可以引用该索引，此时，查询语句通过遍历索引条目获取结果，而不是通过遍历集合获取结果。
+            | 创建可以被查询引用的索引能够大幅度的提高查询语句的性能。
+        p 本小节内容详述了创建可以被查询语句引用的索引的策略。
+        p
+            strong
+                small 如果所有的查询语句使用相同的查询字段，则创建对应的单个字段的索引
+        p 如果应用程序只是查询单个集合的某个字段，此时可以在查询字段上创建大个字段的索引以满足查询语句。例如，
+            | 应用程序的查询语句频繁的在集合<code>products</code>的文档字段<code>category</code>上进行查询，此时可以通过如下语句创建索引：
+        p
+            code db.products.ensureIndex({'category': 1})
+        p
+            strong
+                small 创建复合索引以支持不同的查询语句
+        p 如果查询语句有时查询某个字段，有时查询该字段和其他字段的组合，此时，应该创建复合索引，而不是创建独立的单个字段的索引，
+            | MongoDB会对上述的两个查询语句都引用该复合索引。例如：应用程序可能在集合<code>products</code>的<code>category、item</code>上创建复合索引：
+        p
+            code db.products.ensureInde({'category': 1, 'item': 1})
+        p 对于上述索引，针对字段<code>category</code>的查询，以及针对字段<code>category、item</code>的查询，均可以使用该索引。
+            | 如果查询语句的查询字段是复合索引的前置字段，则查询语句就可以引用该复合索引。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合上存在如下索引：
+                p
+                    code {x: 1, y: 1, z: 1}
+                p 则上述索引可以支持以下字段的查询：
+                p
+                    code {x: 1}<br/>
+                    code {x: 1, y: 1}<br/>
+                    code {x: 1, y: 1, z: 1}
+                p 在某些场景种，复合索引的前值索引可以提供更好的查询性能：例如，假设<code>z</code>字段存储的是一个很大的数组。
+                p 同时，索引<code>{x: 1, y: 1, z: 1}</code>也可以支持引用索引<code>{x: 1, z: 1}</code>的查询。
+                p 另外，索引<code>{x: 1, z: 1}</code>有其他的用处，比如：
+                p
+                    code db.collection.find( { x: 5 } ).sort( { z: 1} )
+                p 对于上述查询语句，索引<code>{x: 1, z: 1}</code>可以同时满足查询和排序，但是索引<code>{x: 1, y: 1, z: 1}</code>只能满足查询。
+        p 从MongoDB版本2.6开始，MongoDB可以使用索引的交叉引用来满足查询，选择使用复合索引，还是选择使用索引的交叉引用，取决于系统的要求。
+        p
+            strong
+                small 创建支持Covered查询的索引
+        p 一个Covered查询指的是该查询语句包括：
+            ul
+                li 所有的查询字段（即：过滤条件中使用到的字段）均包含在该索引中
+                li 所有的返回字段（即：返回结果集中包含的字段）均包含在该索引中
+        p 由于索引字段覆盖了查询使用到的字段，所以，MongoDB可以只通过索引完成查询条件的匹配和结果集的返回，而不需要遍历索引关联的文档集合，
+            | 即：MongoDB可以只通过索引得到最终的查询结果。
+        p 相较于查询文档集合，只查询索引的速度要快得多，因为，通常来讲，索引键对较小，并且索引通常是内存可用的，或者是在磁盘上连续存储的。
+        p 对于一个Covered查询，MongoDB会自动使用相关的索引满足查询。为了确保一个索引可以覆盖（cover）一个查询语句，
+            | 则需要创建一个包含所有查询文档的字段和结果集中的字段索引。可以同时投影操作指定结果集需要返回的字段，默认时，MongoDB会返回<code>_id</code>字段，
+            | 所以，如果索引不包含<code>_id</code>字段，需要在投影操作中显式的排除<code>_id</code>字段。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合<code>users</code>上存在以下复合索引：
+                p
+                    code db.users.ensureIndex({status: 1, user: 1})
+                p 对于如下查询语句，上述所以会覆盖该查询语句：
+                p
+                    code db.users.find({status: 'A'}, {user: 1, _id: 0})
+                p 在上述查询语句中，投影操作显式的将<code>_id</code>字段从结果集中排除，因为索引中只包含<code>status、user</code>字段。
+                p 如果查询语句没有显式的排除<code>_id</code>字段，查询语句默认返回该字段，此时，上述索引没有覆盖该查询语句，如下：
+                p
+                    code db.users.find({status: 'A'}, {user: 1})
+        p 如果出现以下情况，一个索引不能覆盖一个查询语句：
+            ul
+                li 集合文档的索引字段包含一个数组。如果一个索引字段是数组类型，则该索引成为多键索引，多键索引不能覆盖查询。
+                li 集合文档的索引字段包含嵌套文档。如果需要为嵌套文档的字段创建索引，使用点符号（.）。例如，假设集合<code>users</code>中的文档结构如下：
+                    p
+                        code {_id: 1, user: {login: 'tester'}}
+                    p 该集合上存在如下索引:
+                    p
+                        code {user: 1}<br/>
+                        code {'user.login': 1}
+                    p 索引<code>{user: 1}</code>可以覆盖以下查询：
+                    p
+                        code db.users.find( { user: { login: "tester" } }, { user: 1, _id: 0 } )
+                    p 但是，索引<code>{'user.login': 1}</code>不能覆盖以下查询：
+                    p
+                        code db.users.find( { "user.login": "tester" }, { "user.login": 1, _id: 0 } )
+                    p 但是，上述查询语句使用索引<code>{'user.login': 1}</code>进行结果集的匹配
+        p 可以通过方法<code>explain()</code>查看一个查询语句是否一个Covered查询语句。如果方法<code>explain()</code>返回字段<code>indexOnly</code>值为<code>true</code>，
+            | 则说明该查询语句是一个Covered查询。
+        strong 使用索引返回排序结果集
+        p 在MongoDB中，排序操作可以通过有序的索引条目完成。如果查询语句不能通过索引获取排序结果集，则会在内存中对结果集进行单独的排序操作。
+            | 使用索引的排序操作通常来讲要比不使用索引的排序操作更高效。另外，对于不使用索引的排序操作，如果内存的使用量超过32M，排序操作会终止。
+        p
+            strong
+                small 使用单一字段索引排序
+        p 如果在一个字段上存在一个升序或降序的索引，则通过索引可以在该字段上进行升序和降序两个方向的排序操作。
+        p 例如，在集合<code>records</code>的<code>a</code>字段上存在如下索引：
+        p
+            code db.records.ensureIndex({a: 1})
+        p 则上述索引可以支持如下的排序操作
+        p
+            code db.records.find().sort({a: 1})<br/>
+            code db.records.find().sort({a: -1})
+        p
+            strong
+                small 多个字段上的排序操作
+        p 通过复合索引可以支持多个字段上的排序操作。
+        p 可以针对复合索引的全部字段或部分字段进行排序；但是，排序字段的顺序必须和索引中声明的顺序相同。例如，
+            | 索引<code>{a: 1, b: 1}</code>支持<code>{a: 1, b: 1}</code>的排序，但是不支持<code>{b: 1, a: 1}</code>的排序。
+        p 对于使用索引的排序操作，必须保证排序字段的顺序和索引声明中字段的顺序一致，或者，排序字段的顺序和索引声明中字段的顺序正好相反。
+            | 例如，索引<code>{a: 1, b: 1}</code>支持<code>{a: 1, b: 1}</code>和<code>{a: -1, b: -1}</code>的排序，
+            | 但是不支持<code>{a: -1, b: 1}</code>的排序。
+        ul
+            li
+                strong
+                    small 排序和复合索引的前置字段
+                p 如果排序字段是完整的索引字段，或者是索引的前置字段，则MongoDB可以使用索引完成排序操作。索引的前置字段指的是：
+                    | 索引开始处的一个或多个索引字段。
+                p 例如，在集合<code>data</code>上存在如下的复合索引：
+                p
+                    code db.data.ensureIndex({a: 1, b: 1, c: 1, d: 1})
+                p 则如下字段均是上述索引的前置字段：
+                p
+                    code {a: 1}<br/>
+                    code {a: 1, b: 1}<br/>
+                    code {a: 1, b: 1, c: 1}
+                p 如下表格中的查询语句可以利用索引完成结果集的排序操作，而不需要在内存中针对结果集进行额外的排序操作：
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='70%') 查询语句
+                                th 使用的前缀索引
+                        tbody
+                            tr
+                                td
+                                    code db.data.find().sort({a: 1})
+                                td
+                                    code {a: 1}
+                            tr
+                                td
+                                    code db.data.find().sort({a: -1})
+                                td
+                                    code {a: 1}
+                            tr
+                                td
+                                    code db.data.find().sort({a: 1, b: 1})
+                                td
+                                    code {a: 1, b: 1}
+                            tr
+                                td
+                                    code db.data.find().sort({a: -1, b: -1})
+                                td
+                                    code {a: 1, b: 1}
+                            tr
+                                td
+                                    code db.data.find().sort({a: 1, b: 1, c: 1})
+                                td
+                                    code {a: 1, b: 1, c: 1}
+                            tr
+                                td
+                                    code db.data.find({a: {$gt: 4}}).sort({a: 1, b: 1})
+                                td
+                                    code {a: 1, b: 1}
+                p 考虑如下查询语句，索引字段存在于查询语句的过滤条件和排序字段中：
+                p
+                    code db.data.find({a: {$gt: 4}}).sort({a: 1, b: 1})
+                p 在上述查询语句中，MongoDB可以使用索引按照排序语句的顺序获取结果文档集。如上例所示，
+                    | 过滤条件中的索引前缀可能不同于排序语句中的索引前缀。
+            li
+                strong 排序和复合索引的非前置字段
+                p 复合索引支持在非前值字段上的排序操作。如果想要实现该效果，则查询语句中的过滤条件必须包含所有排序字段之前的索引字段的相等性过滤条件。
+                p 例如，假设集合<code>data</code>上存在如下索引：
+                p
+                    code {a: 1, b: 1, c: 1, d: 1}
+                p 则如下表格中的查询语句可以使用上述索引完成排序操作：
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='70%') 查询语句
+                                th 使用的前缀索引
+                        tbody
+                            tr
+                                td
+                                    code db.data.find({a: 5}).sort({b: 1, c: 1})
+                                td
+                                    code {a: 1, b: 1, c: 1}
+                            tr
+                                td
+                                    code db.data.find({b: 3, a: 4}).sort({c: 1})
+                                td
+                                    code {a: 1, b: 1, c: 1}
+                            tr
+                                td
+                                    code db.data.find({d: 5, b: {$lt: 3}}).sort({b: 1})
+                                td
+                                    code {a: 1, b: 1}
+                p 在上述最后一个查询语句中，只有排序字段（b）前的索引字段（a）必须存在相等性过滤条件，其他的索引字段可用于指定其他过滤条件。
+                p 如果查询语句没有指定排序字段前索引字段的相等性条件，则该查询语句不能高效的使用复合索引。例如，
+                    | 下例查询语句中指定了排序语句<code>{c: 1}</code>，但是查询语句的过滤条件中并没有指定<code>c</code>字段前的<code>a、b</code>字段的相等性过滤条件：
+                p
+                    code db.data.find({a: {$gt: 2}}).sort({c: 1})<br/>
+                    code db.data.find({c: 5}).sort({c: 1})
+                p 上述两个查询语句不能高效的使用复合索引<code>{a: 1, b: 1, c: 1, d: 1}</code>，甚至不会使用该索引获取结果文档。
+        strong 确保索引位于内存中
+        p 为了更快速的处理，请确保索引数据完全处于内存中，这样可以避免索引的磁盘读取。
+        p 使用帮助方法<code>db.collection.totalIndexSize()</code>可以获取某个集合上索引的总大小（返回结果以字节为单位）：
+        p
+            code > db.collection.totalIndexSize()<br/>
+            code 4294976499
+        p 上例中，索引的大小为4.3G。为了确保索引完全位于内存中，不但需要确保索引的可用内存量，并且需要确保工作区间中其他部分数据在内存中的空间消耗，
+            | 并且，需要谨记：如果拥有多个集合，必须考虑到所有集合中索引的空间消耗，索引和工作区间必须能够同时位于内存中。
+        p
+            strong
+                small 只保存最近数据在内存中的索引
+        p 并不是所有的场景中都需要索引完全位于内存中。如果索引字段的值随着插入操作的进行持续增加，并且应用程序的大部分查询语句只需要获取最近新增的文档，
+            | 此时，MongoDB只需要在内存中存储需要经常访问文档的索引即可，这样可以高效的使用索引，并且最小化索引消耗的内存量。
+        strong 创建具有选择性的查询
+        p 选择性指的是查询语句使用索引缩窄结果集的能力。高效的索引通常都是具有较高的选择性，这样可以使MongoDB使用索引完成匹配查询语句的大部分工作。
+        p 为了确保选择性，在编写查询语句时，需要限制索引字段关联的文档数量。创建具有合适选择性的查询语句与索引数据有关。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设存在字段<code>status</code>，该字段的可能值为<code>new、processed</code>。如果在该字段上创建索引，
+                    | 则该索引具有较低的选择性，在定位文档时该索引的用处很弱。
+                p 相对上述索引更好的选择是，将较低选择性的字段和其他字段组合起来创建一个复合索引。比如，在字段<code>status、created_at</code>上创建复合索引。
+                    | 或者，根据具体的场景，可以将不同<code>status</code>的值分别存储在独立的集合中。
+        .panel.panel-default
+            .panel-heading 示例
+            .panel-body
+                p 假设集合上存在索引<code>{a: 1}</code>，并且<code>a</code>字段的可能取值有三个：
+                p
+                    code { _id: ObjectId(), a: 1, b: "ab" }<br/>
+                    code { _id: ObjectId(), a: 1, b: "cd" }<br/>
+                    code { _id: ObjectId(), a: 1, b: "ef" }<br/>
+                    code { _id: ObjectId(), a: 2, b: "jk" }<br/>
+                    code { _id: ObjectId(), a: 2, b: "lm" }<br/>
+                    code { _id: ObjectId(), a: 2, b: "no" }<br/>
+                    code { _id: ObjectId(), a: 3, b: "pq" }<br/>
+                    code { _id: ObjectId(), a: 3, b: "rs" }<br/>
+                    code { _id: ObjectId(), a: 3, b: "tv" }
+                p 如果需要查询<code>{a: 1, b: 'no'}</code>，则MongoDB需要遍历3个集合文档来获取单个结果文档。相似的，
+                    | 如果需要查询<code>{a: {$gt: 1}, b: 'tv'}</code>，则MongoDB需要遍历6个集合文档，最终得到一个结果文档。
+                p 考虑如下的集合文档，该集合中<code>a</code>字段拥有9个不同的值：
+                p
+                    code { _id: ObjectId(), a: 1, b: "ab" }<br/>
+                    code { _id: ObjectId(), a: 2, b: "cd" }<br/>
+                    code { _id: ObjectId(), a: 3, b: "ef" }<br/>
+                    code { _id: ObjectId(), a: 4, b: "jk" }<br/>
+                    code { _id: ObjectId(), a: 5, b: "lm" }<br/>
+                    code { _id: ObjectId(), a: 6, b: "no" }<br/>
+                    code { _id: ObjectId(), a: 7, b: "pq" }<br/>
+                    code { _id: ObjectId(), a: 8, b: "rs" }<br/>
+                    code { _id: ObjectId(), a: 9, b: "tv" }
+                p 如果查询<code>{a: 2, b: 'cd'}</code>，MongoDB只需要遍历一个文档就可获取结果文档。该索引和查询语句具有较高的选择性，
+                    | 因为<code>a</code>字段具有较多的不同值（分布的较为均匀）。
+                p 但是，虽然针对上述集合，索引具有较高的选择性，但是如果需要查询<code>{a: {$gt: 5}, b: 'tv'}</code>，MongoDB仍然需要遍历4个文档。
+        p 如果数据的总体选择性较低，并且MongoDB需要读取一定量的数据用于返回结果集，此时，某些查询语句不适用索引可能更高效，
+            | 需要实际的测试（即：参考<code>explain()</code>方法的返回结果）。

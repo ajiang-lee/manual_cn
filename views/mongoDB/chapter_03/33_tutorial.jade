@@ -442,18 +442,19 @@ block content
         h4#section333 3.3.3 指定查询语句返回的字段
         p 可以使用<em>投影</em>指定匹配到的文档返回哪些字段。投影可以指定需要返回哪些文档，或者指定不需要返回哪些字段。
         p 投影使用以下语法：
-        table.table.table-bordered
-            thead
-                tr
-                    th 语法
-                    th 描述
-            tbody
-                tr
-                    td field: 1 or true
-                    td 指定需要返回的字段
-                tr
-                    td field: 0 or false
-                    td 指定不需要返回的字段
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th 语法
+                        th 描述
+                tbody
+                    tr
+                        td field: 1 or true
+                        td 指定需要返回的字段
+                    tr
+                        td field: 0 or false
+                        td 指定不需要返回的字段
         .alert.alert-danger 默认情况下，返回文档总是包含<code>_id</code>字段，如果不需要返回<code>_id</code>字段，
             | 则需要显式的指定投影操作：<code>_id: 0</code>。
         p 投影操作中，不能混合使用排除和包含操作，只有一个例外情况：针对<code>_id</code>字段的投影操作。

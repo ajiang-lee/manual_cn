@@ -25,59 +25,60 @@ block content
         strong 处理阶段
         p 管道阶段包含在在数组中，输入文档依次通过这些管道阶段。除<code>$out、$geoNear</code>外，其他所有管道阶段可以在一个管道中出现多次。
             | 使用语法为：<code>db.collection.aggregate([{管道阶段},{管道阶段},...])</code>。
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='20%') 阶段名称
-                    th 描述
-            tbody
-                tr
-                    td
-                        code $geoNear
-                    td 按照距离一个空间坐标点的远近顺序返回文档记录。结合<code>$match、$sort、$limit</code>操作符的功能，
-                        | 输出文档可以包含一个附加的距离字段，以及一个位置标识字段。
-                tr
-                    td
-                        code $group
-                    td 将输入文档按照指定字段进行分组，如果指定了累加表达式，则对分组数据进行相应的累加计算。
-                        | 输出文档只包含分组字段，如果指定了累加表达式，输出文档也包含累加值字段。
-                tr
-                    td
-                        code $limit
-                    td 只将前N（N值由<code>$limit</code>操作符指定）个文档传递到管道的下一个处理阶段。对于每个输入文档，
-                        | 可能有0个（该文档是前N个文档）或1个（该文档不是前N个文档）输出文档。
-                tr
-                    td
-                        code $match
-                    td 过滤输入文档只允许匹配文档进入到下一个处理阶段。<code>$match</code>使用标准的MongoDB查询语句语法。
-                        | 对于每个输入文档，可能有0个（不满足匹配条件）或1个（满足匹配条件）输出文档。
-                tr
-                    td
-                        code $out
-                    td 将聚合操作的结果集写入到一个集合中，如果使用<code>out</code>，则必须是管道的最后一个处理阶段。
-                tr
-                    td
-                        code $project
-                    td 重构上一阶段的结果文档集，比如：添加新字段、删除已有字段。对于每个输入文档，都有对应的输出文档。
-                tr
-                    td
-                        code $redact
-                    td 通过对输入文档的内容添加约束条件重构输入文档，如何添加约束条件由文档本身含有的数据决定。通过和<code>$project、$match</code>操作符的功能结合，
-                        | 可以用来实现字段层级的重构。对于每个输入文档，可能有0个或1个输出文档。
-                tr
-                    td
-                        code $skip
-                    td 跳过前N个文档（N值由<code>$skip</code>操作符指定）将剩余文档原样的传递给管道中的后续处理阶段。对于每个输入文档，
-                        | 可能有0个（该文档不是前N个文档）或1个（该文档是前N个文档）输出文档。
-                tr
-                    td
-                        code $sort
-                    td 根据指定字段对文档重新排序。对于每个输入文档，都有对应的输出文档，发生改变的是文档在结果集中的顺序。
-                tr
-                    td
-                        code $unwind
-                    td 将输入文档数组字段的每个元素解构成单个文档。输出文档中数组字段的值被替换成单个数组元素（即：数据类型由数组转换成非数组）。
-                        | 对于每个输入文档，可能输出N个文档，其中N代表输入文档数组字段的元素个数，如果数组为空，则输出0个文档。
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='20%') 阶段名称
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code $geoNear
+                        td 按照距离一个空间坐标点的远近顺序返回文档记录。结合<code>$match、$sort、$limit</code>操作符的功能，
+                            | 输出文档可以包含一个附加的距离字段，以及一个位置标识字段。
+                    tr
+                        td
+                            code $group
+                        td 将输入文档按照指定字段进行分组，如果指定了累加表达式，则对分组数据进行相应的累加计算。
+                            | 输出文档只包含分组字段，如果指定了累加表达式，输出文档也包含累加值字段。
+                    tr
+                        td
+                            code $limit
+                        td 只将前N（N值由<code>$limit</code>操作符指定）个文档传递到管道的下一个处理阶段。对于每个输入文档，
+                            | 可能有0个（该文档是前N个文档）或1个（该文档不是前N个文档）输出文档。
+                    tr
+                        td
+                            code $match
+                        td 过滤输入文档只允许匹配文档进入到下一个处理阶段。<code>$match</code>使用标准的MongoDB查询语句语法。
+                            | 对于每个输入文档，可能有0个（不满足匹配条件）或1个（满足匹配条件）输出文档。
+                    tr
+                        td
+                            code $out
+                        td 将聚合操作的结果集写入到一个集合中，如果使用<code>out</code>，则必须是管道的最后一个处理阶段。
+                    tr
+                        td
+                            code $project
+                        td 重构上一阶段的结果文档集，比如：添加新字段、删除已有字段。对于每个输入文档，都有对应的输出文档。
+                    tr
+                        td
+                            code $redact
+                        td 通过对输入文档的内容添加约束条件重构输入文档，如何添加约束条件由文档本身含有的数据决定。通过和<code>$project、$match</code>操作符的功能结合，
+                            | 可以用来实现字段层级的重构。对于每个输入文档，可能有0个或1个输出文档。
+                    tr
+                        td
+                            code $skip
+                        td 跳过前N个文档（N值由<code>$skip</code>操作符指定）将剩余文档原样的传递给管道中的后续处理阶段。对于每个输入文档，
+                            | 可能有0个（该文档不是前N个文档）或1个（该文档是前N个文档）输出文档。
+                    tr
+                        td
+                            code $sort
+                        td 根据指定字段对文档重新排序。对于每个输入文档，都有对应的输出文档，发生改变的是文档在结果集中的顺序。
+                    tr
+                        td
+                            code $unwind
+                        td 将输入文档数组字段的每个元素解构成单个文档。输出文档中数组字段的值被替换成单个数组元素（即：数据类型由数组转换成非数组）。
+                            | 对于每个输入文档，可能输出N个文档，其中N代表输入文档数组字段的元素个数，如果数组为空，则输出0个文档。
         strong 表达式
         p 表达式包括<code>字段路径和系统变量、字面量表达式、对象表达式、操作符表达式</code>，表达式可以嵌套使用。
         p
@@ -119,401 +120,415 @@ block content
                 p 布尔表达式将参数解析为布尔值，并返回一个布尔类型的结果。
                 p 除了<code>false</code>，布尔表达式会将<code>null、0、undefined</code>解析为<code>false</code>，初次之外，
                     | 布尔表达式会将其他所有参数解析为<code>true</code>，包括非零数字和数组。
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $and
-                            td 只有当所有表达式返回<code>true</code>时该表达式返回<code>true</code>。接收任意数量的表达式。
-                        tr
-                            td
-                                code $not
-                            td 返回参数表达式的相反布尔值。接收单个表达式。
-                        tr
-                            td
-                                code $or
-                            td 当表达式中包含任意个<code>true</code>时该表达式返回<code>true</code>。接收任意数量的表达式。
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $and
+                                td 只有当所有表达式返回<code>true</code>时该表达式返回<code>true</code>。接收任意数量的表达式。
+                            tr
+                                td
+                                    code $not
+                                td 返回参数表达式的相反布尔值。接收单个表达式。
+                            tr
+                                td
+                                    code $or
+                                td 当表达式中包含任意个<code>true</code>时该表达式返回<code>true</code>。接收任意数量的表达式。
             li
                 strong 集合表达式
                 p 集合表达式用于在数组上执行集合操作，将数组视为集合。集合表达式忽略输入数组中的重复数据和数组元素在数组中的顺序。
                 p 如果集合操作返回一个集合，则在返回的数组中不包含重复记录，并且数组中元素的顺序也是随机的。
                 p 如果集合包含一个嵌套数组元素，则集合表达式不会对嵌套数组的各个元素进行计算，而是在对整个嵌套数组进行计算。
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $allElementsTrue
-                            td 如果集合中没有元素为<code>false</code>，返回<code>true</code>，否则返回<code>false</code>。
-                                | 接受单个参数。
-                        tr
-                            td
-                                code $anyElementTrue
-                            td 如果集合中任意元素为<code>true</code>，返回<code>true</code>，否则返回<code>false</code>。
-                                | 接受单个参数。
-                        tr
-                            td
-                                code $setDifference
-                            td 返回一个集合，集合中的元素存在于第一个集合但不存在与第二个集合。接受两个参数。
-                        tr
-                            td
-                                code $setEquals
-                            td 如果参数集合拥有完全相同的元素，返回<code>true</code>。接受两个或多个参数。
-                        tr
-                            td
-                                code $setIntersection
-                            td 返回一个集合，集合中的元素同时位于所有参数集合中。接受人一个参数。
-                        tr
-                            td
-                                code $setIsSubset
-                            td 如果第一个集合的所有元素包含在第二个集合中（包括两个集合相等的场景），返回<code>true</code>。接受两个参数。
-                        tr
-                            td
-                                code $setUnion
-                            td 返回一个集合，集合中的元素包括所有参数集合中的元素，接受任意数量的参数。
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $allElementsTrue
+                                td 如果集合中没有元素为<code>false</code>，返回<code>true</code>，否则返回<code>false</code>。
+                                    | 接受单个参数。
+                            tr
+                                td
+                                    code $anyElementTrue
+                                td 如果集合中任意元素为<code>true</code>，返回<code>true</code>，否则返回<code>false</code>。
+                                    | 接受单个参数。
+                            tr
+                                td
+                                    code $setDifference
+                                td 返回一个集合，集合中的元素存在于第一个集合但不存在与第二个集合。接受两个参数。
+                            tr
+                                td
+                                    code $setEquals
+                                td 如果参数集合拥有完全相同的元素，返回<code>true</code>。接受两个或多个参数。
+                            tr
+                                td
+                                    code $setIntersection
+                                td 返回一个集合，集合中的元素同时位于所有参数集合中。接受人一个参数。
+                            tr
+                                td
+                                    code $setIsSubset
+                                td 如果第一个集合的所有元素包含在第二个集合中（包括两个集合相等的场景），返回<code>true</code>。接受两个参数。
+                            tr
+                                td
+                                    code $setUnion
+                                td 返回一个集合，集合中的元素包括所有参数集合中的元素，接受任意数量的参数。
             li
                 strong 比较表达式
                 p 除表达式<code>$cmp</code>返回一个数字外，其他比较表达式返回一个布尔值。
                 p 比较表达式接受两个参数，比较参数的值和类型，然后返回结果。
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $cmp
-                            td 如果两个参数相等返回0；如果第一个参数大于第二个参数返回1；如果第一个参数小于第二个参数返回-1。
-                        tr
-                            td
-                                code $eq
-                            td 如果参数相等返回true
-                        tr
-                            td
-                                code $gt
-                            td 如果第一个参数大于第二个参数返回true
-                        tr
-                            td
-                                code $gte
-                            td 如果第一个参数大于等于第二个参数返回true
-                        tr
-                            td
-                                code $lt
-                            td 如果第一个参数小于第二个参数返回true
-                        tr
-                            td
-                                code $lte
-                            td 如果第一个参数小于等于第二个参数返回true
-                        tr
-                            td
-                                code $ne
-                            td 如果参数不相等返回true
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $cmp
+                                td 如果两个参数相等返回0；如果第一个参数大于第二个参数返回1；如果第一个参数小于第二个参数返回-1。
+                            tr
+                                td
+                                    code $eq
+                                td 如果参数相等返回true
+                            tr
+                                td
+                                    code $gt
+                                td 如果第一个参数大于第二个参数返回true
+                            tr
+                                td
+                                    code $gte
+                                td 如果第一个参数大于等于第二个参数返回true
+                            tr
+                                td
+                                    code $lt
+                                td 如果第一个参数小于第二个参数返回true
+                            tr
+                                td
+                                    code $lte
+                                td 如果第一个参数小于等于第二个参数返回true
+                            tr
+                                td
+                                    code $ne
+                                td 如果参数不相等返回true
             li
                 strong 算数表达式
                 p 算数表达式用于对数字进行算数运算，一些算数表达式可用于日期的计算。
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $add
-                            td 将数字相加返回和，或者将数字和日期相加返回新日期。如果是数字和日期相加，则数字代表毫秒数。
-                                | 接受任意个参数，但是最多只能有一个日期。
-                        tr
-                            td
-                                code $divide
-                            td 返回第一个数字除以第二个数字的结果，接受两个参数。
-                        tr
-                            td
-                                code $mod
-                            td 返回第一个数字除以第二个数字的余数，接受两个参数。
-                        tr
-                            td
-                                code $multiply
-                            td 返回数字的乘积，接受任意个参数。
-                        tr
-                            td
-                                code $subtract
-                            td 返回第一个参数减去第二个参数的差集。如果两个参数是数字，返回数字；如果两个参数是日期，返回相差的毫秒数；
-                                | 如果两个参数一个是数字一个是日期（日期是第一个参数，数字是第二个参数，否则无意义），返回日期。接受两个参数。
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $add
+                                td 将数字相加返回和，或者将数字和日期相加返回新日期。如果是数字和日期相加，则数字代表毫秒数。
+                                    | 接受任意个参数，但是最多只能有一个日期。
+                            tr
+                                td
+                                    code $divide
+                                td 返回第一个数字除以第二个数字的结果，接受两个参数。
+                            tr
+                                td
+                                    code $mod
+                                td 返回第一个数字除以第二个数字的余数，接受两个参数。
+                            tr
+                                td
+                                    code $multiply
+                                td 返回数字的乘积，接受任意个参数。
+                            tr
+                                td
+                                    code $subtract
+                                td 返回第一个参数减去第二个参数的差集。如果两个参数是数字，返回数字；如果两个参数是日期，返回相差的毫秒数；
+                                    | 如果两个参数一个是数字一个是日期（日期是第一个参数，数字是第二个参数，否则无意义），返回日期。接受两个参数。
             li
                 strong 字符串表达式
                 p 除<code>$concat</code>外，其他字符串表达式只对ASCII字符的字符串行为正常。
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $concat
-                            td 将字符串连接起来，不管字符串是何种字符。
-                        tr
-                            td
-                                code $strcasecmp
-                            td 执行大小写敏感的字符串比较操作：相等返回0；第一个字符串大于第二个字符串返回1；第一个字符串小于第二个字符串返回-1；
-                                | 字符串的比较就是字符的ASCII码的比较。
-                        tr
-                            td
-                                code $substr
-                            td 返回参数字符串指定开始下标和长度的子串。接受3个参数：第一个参数是源字符串，第二个是开始下标，第三个是长度。
-                        tr
-                            td
-                                code $toLower
-                            td 返回字符串的小写形式，接受单个参数
-                        tr
-                            td
-                                code $toUpper
-                            td 返回字符串的大写形式，接受单个参数
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $concat
+                                td 将字符串连接起来，不管字符串是何种字符。
+                            tr
+                                td
+                                    code $strcasecmp
+                                td 执行大小写敏感的字符串比较操作：相等返回0；第一个字符串大于第二个字符串返回1；第一个字符串小于第二个字符串返回-1；
+                                    | 字符串的比较就是字符的ASCII码的比较。
+                            tr
+                                td
+                                    code $substr
+                                td 返回参数字符串指定开始下标和长度的子串。接受3个参数：第一个参数是源字符串，第二个是开始下标，第三个是长度。
+                            tr
+                                td
+                                    code $toLower
+                                td 返回字符串的小写形式，接受单个参数
+                            tr
+                                td
+                                    code $toUpper
+                                td 返回字符串的大写形式，接受单个参数
             li
                 strong 文本搜索表达式
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $meta
-                            td 文本搜索元信息
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $meta
+                                td 文本搜索元信息
             li
                 strong 数组表达式
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $size
-                            td 返回数组中元素的个数，接受单个参数
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $size
+                                td 返回数组中元素的个数，接受单个参数
             li
                 strong 变量表达式
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $let
-                            td 定义在子表达式中使用的变量，返回子表达式的结果，接受命名参数。
-                        tr
-                            td
-                                code $map
-                            td 将子表达式应用在数组的各个元素上，并按顺序返回计算结果，接受命名参数。
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $let
+                                td 定义在子表达式中使用的变量，返回子表达式的结果，接受命名参数。
+                            tr
+                                td
+                                    code $map
+                                td 将子表达式应用在数组的各个元素上，并按顺序返回计算结果，接受命名参数。
             li
                 strong 字面量表达式
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $literal
-                            td 返回一个字面量。用于可能引起歧义的场景下。比如，对<code>$ + 字符串</code>使用，避免解析为路径访问。
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $literal
+                                td 返回一个字面量。用于可能引起歧义的场景下。比如，对<code>$ + 字符串</code>使用，避免解析为路径访问。
             li
                 strong 日期表达式
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $dayOfMonth
-                            td 返回一个月中的第几天，参数为日期，返回值在1-31之间
-                        tr
-                            td
-                                code $dayOfWeek
-                            td 返回一周中的第几天，参数为日期，返回值在1（周日）-7（周六）之间
-                        tr
-                            td
-                                code $dayOfYear
-                            td 返回一年中的第几天，参数为日期，返回值在1-366之间
-                        tr
-                            td
-                                code $hour
-                            td 返回小时数，参数为日期，返回值在0-23之间
-                        tr
-                            td
-                                code $milliseconds
-                            td 返回毫秒数，参数为日期，返回值在0-999之间
-                        tr
-                            td
-                                code $minute
-                            td 返回分钟数，参数为日期，返回值在0-59之间
-                        tr
-                            td
-                                code $month
-                            td 返回月份，参数为日期，返回值在1（一月）-12（12月）之间
-                        tr
-                            td
-                                code $second
-                            td 返回秒数，参数为日期，返回值在0-60之间
-                        tr
-                            td
-                                code $week
-                            td 返回一年中的第几周，参数为日期，返回值在0-53之间
-                        tr
-                            td
-                                code $year
-                            td 返回年份，参数为日期，比如：2015
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $dayOfMonth
+                                td 返回一个月中的第几天，参数为日期，返回值在1-31之间
+                            tr
+                                td
+                                    code $dayOfWeek
+                                td 返回一周中的第几天，参数为日期，返回值在1（周日）-7（周六）之间
+                            tr
+                                td
+                                    code $dayOfYear
+                                td 返回一年中的第几天，参数为日期，返回值在1-366之间
+                            tr
+                                td
+                                    code $hour
+                                td 返回小时数，参数为日期，返回值在0-23之间
+                            tr
+                                td
+                                    code $milliseconds
+                                td 返回毫秒数，参数为日期，返回值在0-999之间
+                            tr
+                                td
+                                    code $minute
+                                td 返回分钟数，参数为日期，返回值在0-59之间
+                            tr
+                                td
+                                    code $month
+                                td 返回月份，参数为日期，返回值在1（一月）-12（12月）之间
+                            tr
+                                td
+                                    code $second
+                                td 返回秒数，参数为日期，返回值在0-60之间
+                            tr
+                                td
+                                    code $week
+                                td 返回一年中的第几周，参数为日期，返回值在0-53之间
+                            tr
+                                td
+                                    code $year
+                                td 返回年份，参数为日期，比如：2015
             li
                 strong 条件表达式
-                table.table.table-bordered
-                    thead
-                        tr
-                            th(width='20%') 名称
-                            th 描述
-                    tbody
-                        tr
-                            td
-                                code $cond
-                            td 一个三元操作符，计算第一个参数，依据计算的结果值，返回剩下两个参数中的一个。接受三个参数。
-                        tr
-                            td
-                                code $isNull
-                            td 如果第一个参数不为空返回第一个参数的值，如果第一个参数为空，则返回第二个参数的值。接受两个参数。
+                .table-responsive
+                    table.table.table-bordered
+                        thead
+                            tr
+                                th(width='20%') 名称
+                                th 描述
+                        tbody
+                            tr
+                                td
+                                    code $cond
+                                td 一个三元操作符，计算第一个参数，依据计算的结果值，返回剩下两个参数中的一个。接受三个参数。
+                            tr
+                                td
+                                    code $isNull
+                                td 如果第一个参数不为空返回第一个参数的值，如果第一个参数为空，则返回第二个参数的值。接受两个参数。
         strong 累加器
         p 累加器只对<code>$group</code>阶段可用，用于对每个分组进行计算。
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='20%') 名称
-                    th 描述
-            tbody
-                tr
-                    td
-                        code $addToSet
-                    td 以数组的形式返回一个分组中唯一表达式的值，数组元素的顺序是随机的。
-                tr
-                    td
-                        code $avg
-                    td 返回分组的平均值，忽略非数字
-                tr
-                    td
-                        code $first
-                    td 返回组内的第一个元素
-                tr
-                    td
-                        code $last
-                    td 返回组内的最后一个元素
-                tr
-                    td
-                        code $max
-                    td 返回组内最大值
-                tr
-                    td
-                        code $min
-                    td 返回组内最小值
-                tr
-                    td
-                        code $push
-                    td 针对每组返回一个数组表达式
-                tr
-                    td
-                        code $sum
-                    td 针对每组返回一个和值，忽略非数字
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='20%') 名称
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code $addToSet
+                        td 以数组的形式返回一个分组中唯一表达式的值，数组元素的顺序是随机的。
+                    tr
+                        td
+                            code $avg
+                        td 返回分组的平均值，忽略非数字
+                    tr
+                        td
+                            code $first
+                        td 返回组内的第一个元素
+                    tr
+                        td
+                            code $last
+                        td 返回组内的最后一个元素
+                    tr
+                        td
+                            code $max
+                        td 返回组内最大值
+                    tr
+                        td
+                            code $min
+                        td 返回组内最小值
+                    tr
+                        td
+                            code $push
+                        td 针对每组返回一个数组表达式
+                    tr
+                        td
+                            code $sum
+                        td 针对每组返回一个和值，忽略非数字
         h4#section742 7.4.2&emsp;聚合命令对比
         p 以下表格简要的对比了MongoDB的各个聚合命令：
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='10%') &nbsp;
-                    th(width='30%') aggregate
-                    th(width='30%') mapReduce
-                    th(width='30%') group
-            tbody
-                tr
-                    td 描述
-                    td
-                        p 版本2.2新特性。
-                        p 旨在提供聚合任务的性能和可用性，针对特定目标设计的聚合功能。原理是输入文档在一个“管道”中，经由各个处理阶段的处理，
-                            | 最终得到聚合结果的操作。比如：<code>$group、$match、$sort</code>等处理阶段。
-                    td 实现Map-Reduce聚合，用于处理大数据量的聚合。
-                    td 提供了分组功能。比<code>aggregate</code>命令慢，比<code>mapReduce</code>命令功能弱，但是用法简单直接。
-                tr
-                    td 关键特性
-                    td
-                        p 管道操作符在管道中可以重复出现。
-                        p 管道操作符对于输入文档可以不输出对应的文档，也可以生成新的输入文档。
-                    td 除了分组功能，可以执行复杂的数据聚合任务，同时可以执行增量的数据聚合。
-                    td 可以依据现有字段进行分组，也可以使用自定义的<code>keyf</code> JavaScript函数分组，可以根据计算字段进行分组。
-                tr
-                    td 灵活性
-                    td 管道的处理阶段是受限的，只能使用MongoDB提供的操作符。但是可以通过<code>$project</code>操作符对结果集进行额外的运算，
-                        | 达到结果集的自定义。
-                    td 自定义的<code>map、reduce、finalize</code> JavaScript函数提供了最大限度的灵活性。
-                    td 自定义的<code>reduce、finalize</code> JavaScript函数可以为分组提供灵活性。
-                tr
-                    td 输出结果
-                    td 可以以不同形式返回：直接返回文档；指向结果的指针；将结果转储到一个集合中。如果以文档形式返回，
-                        | 则受<code>BSON Document Size</code>大小的限制（16M）。版本2.6中发生了改变，
-                        | 可以以指针或者将结果转储到一个集合中。
-                    td 可以以不同形式返回：直接范文文档；将结果转储到一个集合中（新建、合并、替换、浓缩）。版本2.2中发生了改变，
-                        | 提供了对了输出分片集合的支持。
-                    td 直接返回结果数组。结果集必须满足<code>BSON Document Size</code>大小的限制（16M）。版本2.2中发生了改变，
-                        | 返回数组最多包含20000个元素，即：最多支持20000个分组，先前版本支持10000个分组。
-                tr
-                    td 对分片集合的支持
-                    td 支持分片、非分片的输入集合。
-                    td 支持分片、非分片的输入集合。版本2.6中发生了改变：由于引入了V8引擎，JavaScript代码可以在多线程中执行。
-                    td 不支持分片集合。版本2.6中发生了改变：由于引入了V8引擎，JavaScript代码可以在多线程中执行。
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='10%') &nbsp;
+                        th(width='30%') aggregate
+                        th(width='30%') mapReduce
+                        th(width='30%') group
+                tbody
+                    tr
+                        td 描述
+                        td
+                            p 版本2.2新特性。
+                            p 旨在提供聚合任务的性能和可用性，针对特定目标设计的聚合功能。原理是输入文档在一个“管道”中，经由各个处理阶段的处理，
+                                | 最终得到聚合结果的操作。比如：<code>$group、$match、$sort</code>等处理阶段。
+                        td 实现Map-Reduce聚合，用于处理大数据量的聚合。
+                        td 提供了分组功能。比<code>aggregate</code>命令慢，比<code>mapReduce</code>命令功能弱，但是用法简单直接。
+                    tr
+                        td 关键特性
+                        td
+                            p 管道操作符在管道中可以重复出现。
+                            p 管道操作符对于输入文档可以不输出对应的文档，也可以生成新的输入文档。
+                        td 除了分组功能，可以执行复杂的数据聚合任务，同时可以执行增量的数据聚合。
+                        td 可以依据现有字段进行分组，也可以使用自定义的<code>keyf</code> JavaScript函数分组，可以根据计算字段进行分组。
+                    tr
+                        td 灵活性
+                        td 管道的处理阶段是受限的，只能使用MongoDB提供的操作符。但是可以通过<code>$project</code>操作符对结果集进行额外的运算，
+                            | 达到结果集的自定义。
+                        td 自定义的<code>map、reduce、finalize</code> JavaScript函数提供了最大限度的灵活性。
+                        td 自定义的<code>reduce、finalize</code> JavaScript函数可以为分组提供灵活性。
+                    tr
+                        td 输出结果
+                        td 可以以不同形式返回：直接返回文档；指向结果的指针；将结果转储到一个集合中。如果以文档形式返回，
+                            | 则受<code>BSON Document Size</code>大小的限制（16M）。版本2.6中发生了改变，
+                            | 可以以指针或者将结果转储到一个集合中。
+                        td 可以以不同形式返回：直接范文文档；将结果转储到一个集合中（新建、合并、替换、浓缩）。版本2.2中发生了改变，
+                            | 提供了对了输出分片集合的支持。
+                        td 直接返回结果数组。结果集必须满足<code>BSON Document Size</code>大小的限制（16M）。版本2.2中发生了改变，
+                            | 返回数组最多包含20000个元素，即：最多支持20000个分组，先前版本支持10000个分组。
+                    tr
+                        td 对分片集合的支持
+                        td 支持分片、非分片的输入集合。
+                        td 支持分片、非分片的输入集合。版本2.6中发生了改变：由于引入了V8引擎，JavaScript代码可以在多线程中执行。
+                        td 不支持分片集合。版本2.6中发生了改变：由于引入了V8引擎，JavaScript代码可以在多线程中执行。
         h4#section743 7.4.3&emsp;SQL和聚合的对比
         p 聚合管道需要MongoDB提供类似SQL中的聚合功能。
         p 以下表格对比了常用操作的对比：
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='50%') SQL
-                    th MongoDB聚合操作符
-            tbody
-                tr
-                    td WHERE
-                    td $match
-                tr
-                    td GROUP BY
-                    td $group
-                tr
-                    td HAVING
-                    td $match
-                tr
-                    td SELECT
-                    td $project
-                tr
-                    td ORDER BY
-                    td $sort
-                tr
-                    td LIMIT
-                    td $limit
-                tr
-                    td SUM()
-                    td $sum
-                tr
-                    td COUNT()
-                    td $sum
-                tr
-                    td join
-                    td 没有对应的操作符；但是，<code>$unwind</code>在某些场景中可以提供类似的功能。
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='50%') SQL
+                        th MongoDB聚合操作符
+                tbody
+                    tr
+                        td WHERE
+                        td $match
+                    tr
+                        td GROUP BY
+                        td $group
+                    tr
+                        td HAVING
+                        td $match
+                    tr
+                        td SELECT
+                        td $project
+                    tr
+                        td ORDER BY
+                        td $sort
+                    tr
+                        td LIMIT
+                        td $limit
+                    tr
+                        td SUM()
+                        td $sum
+                    tr
+                        td COUNT()
+                        td $sum
+                    tr
+                        td join
+                        td 没有对应的操作符；但是，<code>$unwind</code>在某些场景中可以提供类似的功能。
         strong 示例
         p 以下表格展示了SQL和MongoDB的聚合操作的差异，该示例假设以下场景：
             ul
@@ -530,191 +545,194 @@ block content
                         code.three { sku: "yyy", qty: 25, price: 1 } <br/>
                         code.two ]
                         code }
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='30%') SQL
-                    th(width='50%') MongoDB
-                    th(width='20%') 描述
-            tbody
-                tr
-                    td
-                        code SELECT COUNT(*) AS count <br/>
-                        code FROM orders
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$group: {_id: null, count: {$sum: 1}}}<br/>
-                        code ])
-                    td 获取表<code>orders</code>总记录数
-                tr
-                    td
-                        code SELECT SUM(price) AS total <br/>
-                        code FROM orders
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$group: {_id: null, total: {$sum: '$price'}}}<br/>
-                        code ])
-                    td 计算集合<code>orders</code>中文档的<code>price</code>字段的和
-                tr
-                    td
-                        code SELECT cust_id, SUM(price) AS total <br/>
-                        code FROM orders <br/>
-                        code GROUP BY cust_id
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}}<br/>
-                        code ])
-                    td 按<code>cust_id</code>分组，并计算每组内<code>price</code>字段的和
-                tr
-                    td
-                        code SELECT cust_id, SUM(price) AS total <br/>
-                        code FROM orders <br/>
-                        code GROUP BY cust_id <br/>
-                        code ORDER BY total
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}},<br/>
-                        code.two {$sort: {total: 1}}<br/>
-                        code ])
-                    td 按<code>cust_id</code>分组，并计算每组内<code>price</code>字段的和，最后按<code>total</code>字段升序返回
-                tr
-                    td
-                        code SELECT cust_id, ord_date, SUM(price) AS total <br/>
-                        code FROM orders <br/>
-                        code GROUP BY cust_id, ord_date
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {<br/>
-                        code.three $group: {<br/>
-                        code.four _id: {<br/>
-                        code.five cust_id: '$cust_id', <br/>
-                        code.five ord_date: {month: {$month: '$ord_date'}, day: {$dayOfMonth: '$ord_date'}, year: {$year: '$ord_date'}}<br/>
-                        code.four },<br/>
-                        code.four total: {$sum: '$price'}<br/>
-                        code.three }<br/>
-                        code.two }<br/>
-                        code ])
-                    td 按组合<code>cust_id、ord_date</code>分组，并计算每组内<code>price</code>字段的和。
-                tr
-                    td
-                        code SELECT cust_id, COUNT(*) <br/>
-                        code FROM orders <br/>
-                        code GROUP BY cust_id <br/>
-                        code HAVING COUNT(*) > 1
-                    td
-                        code db.orders.aggregate([{<br/>
-                        code.two {$group: {_id: '$cust_id'}, count: {$sum: 1}},<br/>
-                        code.two {$match: {count: {$gt: 1}}}<br/>
-                        code }])
-                    td 按照<code>cust_id</code>分组，返回订单数大于1的分组
-                tr
-                    td
-                        code SELECT cust_id, ord_date, SUM(price) AS total <br/>
-                        code FROM orders<br/>
-                        code GROUP BY cust_id, ord_date<br/>
-                        code HAVING total > 250
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$group: {<br/>
-                        code.three _id: {<br/>
-                        code.four cust_id: '$cust_id',<br/>
-                        code.four ord_date: {<br/>
-                        code.five month: {$month: '$ord_date'},<br/>
-                        code.five day: {$dayOfMonth: '$ord_date'},<br/>
-                        code.five year: {$year: '$ord_date'}<br/>
-                        code.four }<br/>
-                        code.three },<br/>
-                        code.three total: {$sum: '$price'}<br/>
-                        code.two }},<br/>
-                        code.two {$match: {total: {$gt: 250}}}<br/>
-                        code ])
-                    td 按照组合<code>cust_id、ord_date</code>分组，计算每组<code>price</code>的和，返回和值大于250的记录
-                tr
-                    td
-                        code SELECT cust_id, SUM(price) AS total<br/>
-                        code FROM orders<br/>
-                        code WHERE status = 'A'<br/>
-                        code GROUP BY cust_id
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$match: {status: 'A'}},<br/>
-                        code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}}<br/>
-                        code ])
-                    td 首先按照<code>status = 'A'</code>过滤，然后按照<code>cust_id</code>分组，计算每组<code>price</code>的和
-                tr
-                    td
-                        code SELECT cust_id, SUM(price) AS total<br/>
-                        code FROM orders<br/>
-                        code WHERE status = 'A'<br/>
-                        code GROUP BY cust_id<br/>
-                        code HAVING total > 250
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$match: {status: 'A'}},<br/>
-                        code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}},<br/>
-                        code.two {$match: {total: {$gt: 250}}}<br/>
-                        code ])
-                    td 首先按照<code>status = 'A'</code>过滤，然后按照<code>cust_id</code>分组，计算每组<code>price</code>的和，
-                        | 并且只返回<code>total > 250</code>的记录
-                tr
-                    td
-                        code SELECT cust_id, SUM(li.qty) as qty<br/>
-                        code FROM orders o, order_lineitem li<br/>
-                        code WHERE o.id = li.order_id<br/>
-                        code GROUP BY cust_id
-                    td
-                        code db.orders.aggregate([<br/>
-                        code.two {$unwind: '$items'},<br/>
-                        code.two {$group: {_id: '$cust_id', qty: {$sum: '$items.qty'}}}<br/>
-                        code ])
-                    td 按照<code>cust_id</code>分组，计算每组中<code>items</code>数组中的<code>qty</code>的和。
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='30%') SQL
+                        th(width='50%') MongoDB
+                        th(width='20%') 描述
+                tbody
+                    tr
+                        td
+                            code SELECT COUNT(*) AS count <br/>
+                            code FROM orders
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$group: {_id: null, count: {$sum: 1}}}<br/>
+                            code ])
+                        td 获取表<code>orders</code>总记录数
+                    tr
+                        td
+                            code SELECT SUM(price) AS total <br/>
+                            code FROM orders
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$group: {_id: null, total: {$sum: '$price'}}}<br/>
+                            code ])
+                        td 计算集合<code>orders</code>中文档的<code>price</code>字段的和
+                    tr
+                        td
+                            code SELECT cust_id, SUM(price) AS total <br/>
+                            code FROM orders <br/>
+                            code GROUP BY cust_id
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}}<br/>
+                            code ])
+                        td 按<code>cust_id</code>分组，并计算每组内<code>price</code>字段的和
+                    tr
+                        td
+                            code SELECT cust_id, SUM(price) AS total <br/>
+                            code FROM orders <br/>
+                            code GROUP BY cust_id <br/>
+                            code ORDER BY total
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}},<br/>
+                            code.two {$sort: {total: 1}}<br/>
+                            code ])
+                        td 按<code>cust_id</code>分组，并计算每组内<code>price</code>字段的和，最后按<code>total</code>字段升序返回
+                    tr
+                        td
+                            code SELECT cust_id, ord_date, SUM(price) AS total <br/>
+                            code FROM orders <br/>
+                            code GROUP BY cust_id, ord_date
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {<br/>
+                            code.three $group: {<br/>
+                            code.four _id: {<br/>
+                            code.five cust_id: '$cust_id', <br/>
+                            code.five ord_date: {month: {$month: '$ord_date'}, day: {$dayOfMonth: '$ord_date'}, year: {$year: '$ord_date'}}<br/>
+                            code.four },<br/>
+                            code.four total: {$sum: '$price'}<br/>
+                            code.three }<br/>
+                            code.two }<br/>
+                            code ])
+                        td 按组合<code>cust_id、ord_date</code>分组，并计算每组内<code>price</code>字段的和。
+                    tr
+                        td
+                            code SELECT cust_id, COUNT(*) <br/>
+                            code FROM orders <br/>
+                            code GROUP BY cust_id <br/>
+                            code HAVING COUNT(*) > 1
+                        td
+                            code db.orders.aggregate([{<br/>
+                            code.two {$group: {_id: '$cust_id'}, count: {$sum: 1}},<br/>
+                            code.two {$match: {count: {$gt: 1}}}<br/>
+                            code }])
+                        td 按照<code>cust_id</code>分组，返回订单数大于1的分组
+                    tr
+                        td
+                            code SELECT cust_id, ord_date, SUM(price) AS total <br/>
+                            code FROM orders<br/>
+                            code GROUP BY cust_id, ord_date<br/>
+                            code HAVING total > 250
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$group: {<br/>
+                            code.three _id: {<br/>
+                            code.four cust_id: '$cust_id',<br/>
+                            code.four ord_date: {<br/>
+                            code.five month: {$month: '$ord_date'},<br/>
+                            code.five day: {$dayOfMonth: '$ord_date'},<br/>
+                            code.five year: {$year: '$ord_date'}<br/>
+                            code.four }<br/>
+                            code.three },<br/>
+                            code.three total: {$sum: '$price'}<br/>
+                            code.two }},<br/>
+                            code.two {$match: {total: {$gt: 250}}}<br/>
+                            code ])
+                        td 按照组合<code>cust_id、ord_date</code>分组，计算每组<code>price</code>的和，返回和值大于250的记录
+                    tr
+                        td
+                            code SELECT cust_id, SUM(price) AS total<br/>
+                            code FROM orders<br/>
+                            code WHERE status = 'A'<br/>
+                            code GROUP BY cust_id
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$match: {status: 'A'}},<br/>
+                            code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}}<br/>
+                            code ])
+                        td 首先按照<code>status = 'A'</code>过滤，然后按照<code>cust_id</code>分组，计算每组<code>price</code>的和
+                    tr
+                        td
+                            code SELECT cust_id, SUM(price) AS total<br/>
+                            code FROM orders<br/>
+                            code WHERE status = 'A'<br/>
+                            code GROUP BY cust_id<br/>
+                            code HAVING total > 250
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$match: {status: 'A'}},<br/>
+                            code.two {$group: {_id: '$cust_id', total: {$sum: '$price'}}},<br/>
+                            code.two {$match: {total: {$gt: 250}}}<br/>
+                            code ])
+                        td 首先按照<code>status = 'A'</code>过滤，然后按照<code>cust_id</code>分组，计算每组<code>price</code>的和，
+                            | 并且只返回<code>total > 250</code>的记录
+                    tr
+                        td
+                            code SELECT cust_id, SUM(li.qty) as qty<br/>
+                            code FROM orders o, order_lineitem li<br/>
+                            code WHERE o.id = li.order_id<br/>
+                            code GROUP BY cust_id
+                        td
+                            code db.orders.aggregate([<br/>
+                            code.two {$unwind: '$items'},<br/>
+                            code.two {$group: {_id: '$cust_id', qty: {$sum: '$items.qty'}}}<br/>
+                            code ])
+                        td 按照<code>cust_id</code>分组，计算每组中<code>items</code>数组中的<code>qty</code>的和。
         h4#section744 7.4.47emsp;聚合接口
         strong 聚合命令
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='40%') 名称
-                    th 描述
-            tbody
-                tr
-                    td
-                        code aggregate
-                    td 执行管道聚合任务
-                tr
-                    td
-                        code count
-                    td 获取集合中文档的总记录数
-                tr
-                    td
-                        code distinct
-                    td 获取集合中某个字段的不同值
-                tr
-                    td
-                        code group
-                    td 根据指定字段进行分组
-                tr
-                    td
-                        code mapReduce
-                    td 对大数据量进行Map-Reduce聚合操作
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='40%') 名称
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code aggregate
+                        td 执行管道聚合任务
+                    tr
+                        td
+                            code count
+                        td 获取集合中文档的总记录数
+                    tr
+                        td
+                            code distinct
+                        td 获取集合中某个字段的不同值
+                    tr
+                        td
+                            code group
+                        td 根据指定字段进行分组
+                    tr
+                        td
+                            code mapReduce
+                        td 对大数据量进行Map-Reduce聚合操作
         strong 聚合方法
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='40%') 名称
-                    th 描述
-            tbody
-                tr
-                    td
-                        code db.collection.aggregate()
-                    td 命令<code>aggregate</code>的包装方法
-                tr
-                    td
-                        code db.collection.group()
-                    td 按照指定字段对集合文档进行分组
-                tr
-                    td
-                        code db.collection.mapReduce()
-                    td 命令<code>mapReduce</code>的包装方法
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='40%') 名称
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code db.collection.aggregate()
+                        td 命令<code>aggregate</code>的包装方法
+                    tr
+                        td
+                            code db.collection.group()
+                        td 按照指定字段对集合文档进行分组
+                    tr
+                        td
+                            code db.collection.mapReduce()
+                        td 命令<code>mapReduce</code>的包装方法
         h4#section745 7.4.5&emsp;聚合表达式中的变量
         p 聚合表达式可以使用系统变量和用户自定义变量。
         p 变量可以持有任意<code>BSON type data</code>。使用<code>$$ + 变量名</code>获得变量的引用。
@@ -724,29 +742,30 @@ block content
             | 并且，变量名必须以<code>[a-z]（）</code>开始。
         strong 系统变量
         p MongoDB提供了如下的系统变量：
-        table.table.table-bordered
-            thead
-                tr
-                    th(width='30%') 变量
-                    th 描述
-            tbody
-                tr
-                    td
-                        code ROOT
-                    td 指向根级文档，即：当前管道中正在处理文档的顶层文档
-                tr
-                    td
-                        code CURRENT
-                    td 指向当前管道中正在处理的文档，除非特别指明，否则该变量永远指向正在处理的文档，和<code>ROOT</code>相同。
-                tr
-                    td
-                        code DESCEND
-                    td <code>$redact</code>的一个可能结果
-                tr
-                    td
-                        code PRUNE
-                    td <code>$redact</code>的一个可能结果
-                tr
-                    td
-                        code KEEP
-                    td <code>$redact</code>的一个可能结果
+        .table-responsive
+            table.table.table-bordered
+                thead
+                    tr
+                        th(width='30%') 变量
+                        th 描述
+                tbody
+                    tr
+                        td
+                            code ROOT
+                        td 指向根级文档，即：当前管道中正在处理文档的顶层文档
+                    tr
+                        td
+                            code CURRENT
+                        td 指向当前管道中正在处理的文档，除非特别指明，否则该变量永远指向正在处理的文档，和<code>ROOT</code>相同。
+                    tr
+                        td
+                            code DESCEND
+                        td <code>$redact</code>的一个可能结果
+                    tr
+                        td
+                            code PRUNE
+                        td <code>$redact</code>的一个可能结果
+                    tr
+                        td
+                            code KEEP
+                        td <code>$redact</code>的一个可能结果
