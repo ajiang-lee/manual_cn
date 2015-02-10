@@ -1,0 +1,38 @@
+extends ./layout
+
+block content
+    .container
+        ol.breadcrumb
+            li.active 关于站点
+        dl
+            dt 联系我们
+            dd 如果您发现本站点存在不当内容，请及时发送邮件到<code>ajang_lee@hotmail.com</code>反映问题。
+            br
+            dt 站点简介
+            dd 本站点致力于完成MongoDB、Redis、NodeJS，以及NodeJS开发过程中常用第三方包的官方使用手册的中文翻译，
+                | 希望能够对使用相关技术的同行提供参考。目前，站点不支持站点内部的文字交流，我们会尽快提供留言功能，
+                | 以方便大家的技术交流。
+            br
+            dt 站点相关
+            dd 本站点的源码托管与GitHub：
+                | <a href='https://github.com/ajiang-lee/manual_cn' title='https://github.com/ajiang-lee/manual_cn' target='_blank'>manual_cn</a>。
+                br
+                | 本站点部署于<a href='https://dashboard.heroku.com' title='https://dashboard.heroku.com' target='_blank'>HeroKu</a>云平台。
+                br
+                | 本站点使用的技术为：<a href='http://nodejs.org/' title='http://nodejs.org/' target='_blank'>NodeJS</a>，
+                | 其中用到的主要第三方包有：<a href='http://expressjs.com/' title='http://expressjs.com/' target='_blank'>Express</a>、
+                | <a href='http://jade-lang.com/' title='http://jade-lang.com/' target='_blank'>Jade</a>等等，本站点package.json中部分代码为：
+                .panel.panel-default
+                    .panel-heading package.json
+                    .panel-body
+                        code "dependencies": {<br/>
+                        code.two "body-parser": "1.8.4",<br/>
+                        code.two "compression": "1.4.0",<br/>
+                        code.two "cookie-parser": "1.3.3",<br/>
+                        code.two "debug": "2.0.0",<br/>
+                        code.two "express": "4.9.8",<br/>
+                        code.two "jade": "1.6.0",<br/>
+                        code.two "mongodb": "2.0.14",<br/>
+                        code.two "morgan": "1.3.2",<br/>
+                        code.two "serve-favicon": "2.1.7"<br/>
+                        code }
