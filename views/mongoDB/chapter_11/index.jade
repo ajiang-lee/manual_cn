@@ -1,0 +1,57 @@
+extends ../../layout
+
+block content
+    .container
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li.active 常见问题
+        p 本章内容主要介绍了在使用MongoDB过程中遇到的各种问题，以及相应的解释。
+        ul
+            li
+                a(href='/mongoDB/question/fundamental') 11.1&emsp;基础相关
+                ul
+                    li
+                        a(href='/mongoDB/question/fundamental/section1111') 11.1.1&emsp;MongoDB是什么类型的数据库
+                    li
+                        a(href='/mongoDB/question/fundamental/section1112') 11.1.2&emsp;MongoDB数据库中是否存在表结构
+                    li
+                        a(href='/mongoDB/question/fundamental/section1113') 11.1.3&emsp;MongoDB数据库中是否存在域的概念
+                    li
+                        a(href='/mongoDB/question/fundamental/section1114') 11.1.4&emsp;在编程语言中如何使用MongoDB
+                    li
+                        a(href='/mongoDB/question/fundamental/section1115') 11.1.5&emsp;MongoDB数据库是否支持SQL语言
+                    li
+                        a(href='/mongoDB/question/fundamental/section1116') 11.1.6&emsp;MongoDB数据库的使用场景是什么
+                    li
+                        a(href='/mongoDB/question/fundamental/section1117') 11.1.7&emsp;MongoDB数据库是否支持ACID的事务性操作
+                    li
+                        a(href='/mongoDB/question/fundamental/section1118') 11.1.8&emsp;MongoDB数据库是否需要较多的内存
+                    li
+                        a(href='/mongoDB/question/fundamental/section1119') 11.1.9&emsp;应该如何配置缓存大小
+                    li
+                        a(href='/mongoDB/question/fundamental/section11110') 11.1.10&emsp;应用程序使用MongoDB时，是否需要配置独立的缓存
+                    li
+                        a(href='/mongoDB/question/fundamental/section11111') 11.1.11&emsp;MongoDB数据库是否拥有缓存
+                    li
+                        a(href='/mongoDB/question/fundamental/section11112') 11.1.12&emsp;MongoDB数据库中的写操作是立即写入磁盘，还是延时写入
+                    li
+                        a(href='/mongoDB/question/fundamental/section11113') 11.1.13&emsp;MongoDB数据库使用何种编程语言编写
+                    li
+                        a(href='/mongoDB/question/fundamental/section11114') 11.1.14&emsp;MongoDB数据库的32位版本存在哪些限制
+            li
+                a(href='/mongoDB/question/developer') 11.2&emsp;开发者相关
+            li
+                a(href='/mongoDB/question/shell') 11.3&emsp;mongo shell相关
+            li
+                a(href='/mongoDB/question/concurrency') 11.4&emsp;并发相关
+            li
+                a(href='/mongoDB/question/shard') 11.5&emsp;分片集群相关
+            li
+                a(href='/mongoDB/question/replication') 11.6&emsp;副本集相关
+            li
+                a(href='/mongoDB/question/storage') 11.7&emsp;存储相关
+            li
+                a(href='/mongoDB/question/indexes') 11.8&emsp;索引相关
+            li
+                a(href='/mongoDB/question/diagnostics') 11.9&emsp;性能诊断相关

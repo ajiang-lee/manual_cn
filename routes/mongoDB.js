@@ -156,4 +156,17 @@ router.get('/index/reference(/:section)?', function(req, res, next) {
     });
 });
 
+// 第十一章：常见问题
+router.get(/^\/question(\/\w+(\/\w+)?)?$/, function(req, res, next){
+    var path = req.path.split('/').slice(1);
+    if (path.length == 1) {
+        res.render('mongoDB/chapter_11/index');
+    } else {
+        res.render('mongoDB/chapter_11/' + path[1], {
+            section : path[2]
+        });
+    }
+});
+
+
 module.exports = router;

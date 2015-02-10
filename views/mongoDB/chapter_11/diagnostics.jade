@@ -1,0 +1,10 @@
+extends ../../layout
+block content
+    .container
+        input#anchor(type='hidden' value='#{section}')
+        ol.breadcrumb
+            li
+                a(href='/mongoDB') MongoDB
+            li
+                a(href='/mongoDB/question') 常见问题
+            li.active 性能诊断相关
