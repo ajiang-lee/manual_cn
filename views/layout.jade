@@ -14,13 +14,13 @@ html(lang='zh-cn')
         document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F469c4e7d28ba4caf0ac753140c16cf98' type='text/javascript'%3E%3C/script%3E"));
   body
     include ./nav
-    a#aboutUs(href='/aboutUs', style='position:absolute', title='关于站点')
+    a#aboutUs(href='/aboutUs', style='position:absolute;opacity:0.7;', title='关于站点')
         span.glyphicon.glyphicon-user(style='font-size:30px;')
-    a#history(href='/history', style='position:absolute', title='更新记录')
+    a#history(href='/history', style='position:absolute;opacity:0.7;', title='更新记录')
         span.glyphicon.glyphicon-th-list(style='font-size:30px;')
-    a#goBack(href='javascript:history.back();', style='display:none;position:absolute', title='回退')
+    a#goBack(href='javascript:history.back();', style='display:none;position:absolute;opacity:0.7;', title='回退')
         span.glyphicon.glyphicon-circle-arrow-left(style='font-size:30px;')
-    a#scrollToTop(href='javascript:void(0);', style='display:none;position:absolute', title='返回顶部')
+    a#scrollToTop(href='javascript:void(0);', style='display:none;position:absolute;opacity:0.7;', title='返回顶部')
         span.glyphicon.glyphicon-circle-arrow-up(style='font-size:30px;')
     block content
     script.
